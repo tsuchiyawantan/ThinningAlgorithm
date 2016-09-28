@@ -16,7 +16,7 @@ public:
 	set<pair<int, int>> whiteDots;
 	vector<pair<int, pair<int, int>>> priorityStart;
 	vector<vector<pair<int, int>>> contours;
-	vector<vector<pair<int, int>>> approximationLine;
+	vector<vector<pair<int, int>>> divideContours;
 	Dot(){
 		init();
 	}
@@ -26,14 +26,14 @@ public:
 		whiteDots.clear();
 		priorityStart.clear();
 		contours.clear();
-		approximationLine.clear();
+		divideContours.clear();
 	}
 	void scalable(int scaleSize){
-		for (int i = 0; i < approximationLine.size(); i++){
-			for (int j = 0; j < approximationLine[i].size(); j++){
-				int y = (approximationLine[i].at(j).first)*scaleSize;
-				int x = (approximationLine[i].at(j).second)*scaleSize;
-				approximationLine[i].at(j) = make_pair(y, x);
+		for (int i = 0; i < divideContours.size(); i++){
+			for (int j = 0; j < divideContours[i].size(); j++){
+				int y = (divideContours[i].at(j).first)*scaleSize;
+				int x = (divideContours[i].at(j).second)*scaleSize;
+				divideContours[i].at(j) = make_pair(y, x);
 			}
 		}
 	}
@@ -47,7 +47,7 @@ public:
 				ctr.push_back(make_pair(contours[i].at(j).first, contours[i].at(j).second));
 			}
 			if (j > contours[i].size()) ctr.push_back(make_pair(contours[i].back().first, contours[i].back().second));
-			approximationLine.push_back(ctr);
+			divideContours.push_back(ctr);
 		}
 	}
 
@@ -159,13 +159,12 @@ public:
 			}
 		}
 	}
-
 	//終点（頂点）が近ければマージする
 	void mergeLine(cv::Mat &srcImg){
-		for (int i = 0; i < approximationLine.size(); i++){
-			int lastY = approximationLine[i].at(approximationLine[i].size()-1).first;
-			int lastX = approximationLine[i].at(approximationLine[i].size()-1).second;
-			int n[24][2] = { { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 } ,
+		for (int i = 0; i < contours.size(); i++){
+			int lastY = contours[i].at(contours[i].size() - 1).first;
+			int lastX = contours[i].at(contours[i].size() - 1).second;
+			int n[24][2] = { { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 },
 			{ -1, 2 }, { 0, 2 }, { 1, 2 }, { 2, 2 }, { 2, 1 }, { 2, 0 }, { 2, -1 }, { 2, -2 },
 			{ 1, -2 }, { 0, -2 }, { -1, -2 }, { -2, -2 }, { -2, -1 }, { -2, 0 }, { -2, 1 }, { -2, 2 } };
 			int count = 0;
@@ -174,9 +173,9 @@ public:
 				int dx = lastX + n[l][1];
 				if (dy < 0 || dy >= srcImg.rows || dx < 0 || dx >= srcImg.cols) continue;
 				if (srcImg.at<uchar>(dy, dx) == 255){
-					for (int j = 0; j < approximationLine.size(); j++){
-						int apxY = approximationLine[j].at(approximationLine[j].size() - 1).first;
-						int apxX = approximationLine[j].at(approximationLine[j].size() - 1).second;
+					for (int j = 0; j < contours.size(); j++){
+						int apxY = contours[j].at(contours[j].size() - 1).first;
+						int apxX = contours[j].at(contours[j].size() - 1).second;
 						if (dy == apxY && dx == apxX){
 							//insert間の点最低1個
 							int insY = lastY;
@@ -194,17 +193,29 @@ public:
 							else if (lastX > apxX){
 								insX = --lastX;
 							}
-							approximationLine[j].push_back(make_pair(insY, insX));
-							reverse(approximationLine[j].begin(), approximationLine[j].end());
-							copy(approximationLine[j].begin(), approximationLine[j].end(), back_inserter(approximationLine[i]));
-							
+							contours[j].push_back(make_pair(insY, insX));
+							reverse(contours[j].begin(), contours[j].end());
+							copy(contours[j].begin(), contours[j].end(), back_inserter(contours[i]));
+
 
 							//繋げられた要素の削除
-							approximationLine.erase(remove(approximationLine.begin(), approximationLine.end(), approximationLine[j]), approximationLine.end());
+							contours.erase(remove(contours.begin(), contours.end(), contours[j]), contours.end());
 						}
 					}
 				}
 			}
+		}
+	}
+	void divideCon(int spaceSize){
+		for (int i = 0; i < contours.size(); i++){
+			vector<pair<int, int>> ctr;
+			int j = 0;
+			ctr.push_back(make_pair(contours[i].at(0).first, contours[i].at(0).second));
+			for (j = spaceSize; j < contours[i].size(); j = j + spaceSize){
+				ctr.push_back(make_pair(contours[i].at(j).first, contours[i].at(j).second));
+			}
+			if (j > contours[i].size()) ctr.push_back(make_pair(contours[i].back().first, contours[i].back().second));
+			divideContours.push_back(ctr);
 		}
 	}
 };
