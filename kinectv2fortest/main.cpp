@@ -54,6 +54,36 @@ void doDot(cv::Mat &srcImg){
 	}
 	cv::imshow("dotImg", dotImg);
 }
+
+void doFast(cv::Mat &srcImg){
+	vector<cv::KeyPoint> fastKeyPoints;
+	int th = 35;
+	cv::FAST(srcImg, fastKeyPoints, th);
+	// keypoint‚ð•`‰æ
+	for (auto k : fastKeyPoints){
+		cv::circle(srcImg, k.pt, 3, cv::Scalar(255, 0, 0));
+	}
+	cv::imshow("fast", srcImg);
+}
+void doHarris(cv::Mat &srcImg){
+	vector<cv::Point2f> corners;
+	cv::goodFeaturesToTrack(srcImg, corners, 80, 0.01, 3, cv::Mat(), 3, true);
+	vector<cv::Point2f>::iterator it_corner = corners.begin();
+	it_corner = corners.begin();
+	for (; it_corner != corners.end(); ++it_corner) {
+		cv::circle(srcImg, cv::Point(it_corner->x, it_corner->y), 1, cv::Scalar(0, 255, 0), -1);
+		cv::circle(srcImg, cv::Point(it_corner->x, it_corner->y), 8, cv::Scalar(0, 255, 0));
+	}
+	cv::imshow("harris ", srcImg);
+}
+void doAgast(cv::Mat &srcImg){}
+void doNormal(cv::Mat &srcImg){
+	cv::Mat grayImg;
+	cv::cvtColor(srcImg, grayImg, CV_BGR2GRAY);
+	doFast(grayImg);
+	//doHarris(grayImg);
+	//doAgast(grayImg);
+}
 void doJob(cv::Mat &srcImg, cv::Mat &resultImg){
 	doThinning(srcImg, resultImg);
 	doDot(resultImg);
@@ -65,10 +95,10 @@ int main()
 		return -1;
 
 	cv::Mat resultImg;
-
-	doJob(srcImg, resultImg);
+	doNormal(srcImg);
+	//doJob(srcImg, resultImg);
 	cv::imshow("src", srcImg);
-	cv::imshow("dst", resultImg);
+	//cv::imshow("dst", resultImg);
 	cv::waitKey();
 	return 0;
 }
