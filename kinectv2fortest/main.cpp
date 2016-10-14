@@ -5,7 +5,7 @@
 #include "Thinning.h"
 #include "Dot.h"
 
-#define SPACESIZE 20
+#define SPACESIZE 10
 
 using namespace std;
 
@@ -53,6 +53,7 @@ void doDot(cv::Mat &srcImg){
 		}
 	}
 	cv::imshow("dotImg", dotImg);
+	cv::imwrite("dot1005.png", dotImg);
 }
 
 void doFast(cv::Mat &srcImg){
@@ -76,13 +77,22 @@ void doHarris(cv::Mat &srcImg){
 	}
 	cv::imshow("harris ", srcImg);
 }
-void doAgast(cv::Mat &srcImg){}
+void doAgast(cv::Mat &srcImg){
+	vector<cv::KeyPoint> points;
+	int th = 20;
+	cv::AGAST(srcImg, points, th);
+	// keypoint‚ð•`‰æ
+	for (auto k : points){
+		cv::circle(srcImg, k.pt, 3, cv::Scalar(255, 0, 0));
+	}
+	cv::imshow("agast", srcImg);
+}
 void doNormal(cv::Mat &srcImg){
 	cv::Mat grayImg;
 	cv::cvtColor(srcImg, grayImg, CV_BGR2GRAY);
-	doFast(grayImg);
+	//doFast(grayImg);
 	//doHarris(grayImg);
-	//doAgast(grayImg);
+	doAgast(grayImg);
 }
 void doJob(cv::Mat &srcImg, cv::Mat &resultImg){
 	doThinning(srcImg, resultImg);
@@ -95,8 +105,8 @@ int main()
 		return -1;
 
 	cv::Mat resultImg;
-	doNormal(srcImg);
-	//doJob(srcImg, resultImg);
+	//doNormal(srcImg);
+	doJob(srcImg, resultImg);
 	cv::imshow("src", srcImg);
 	//cv::imshow("dst", resultImg);
 	cv::waitKey();
