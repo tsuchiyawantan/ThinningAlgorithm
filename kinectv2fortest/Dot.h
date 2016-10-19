@@ -17,6 +17,8 @@ public:
 	vector<pair<int, pair<int, int>>> priorityStart;
 	vector<vector<pair<int, int>>> contours;
 	vector<vector<pair<int, int>>> divideContours;
+	vector<vector<pair<int, int>>> corners;
+
 	Dot(){
 		init();
 	}
@@ -73,6 +75,20 @@ public:
 			if (srcImg.at<uchar>(dy, dx) == 255) count++;
 		}
 		return count;
+	}
+	//白があればtrue
+	boolean countW8(cv::Mat& srcImg, pair<int, int> point){
+		int n[8][2] = { { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 } };
+		int count = 0;
+		int y = point.first;
+		int x = point.second;
+		for (int i = 0; i < 8; i++) {
+			int dy = y + n[i][0];
+			int dx = x + n[i][1];
+			if (dy < 0 || dy >= srcImg.rows || dx < 0 || dx >= srcImg.cols) continue;
+			if (srcImg.at<uchar>(dy, dx) == 255) return true;
+		}
+		return false;
 	}
 	void findStart(cv::Mat &srcImg){
 		for (auto itr = whiteDots.begin(); itr != whiteDots.end(); ++itr) {
@@ -216,6 +232,36 @@ public:
 			}
 			if (j > contours[i].size()) ctr.push_back(make_pair(contours[i].back().first, contours[i].back().second));
 			divideContours.push_back(ctr);
+		}
+	}
+	void setCorner(cv::Mat &src_img){
+		pair<int, int> start;
+		pair<int, int> goal;
+		pair<int, int> mid;
+		vector<pair<int, int>> corner;
+
+
+		for (int i = 0; i < divideContours.size(); i++){
+			//最初の点は急激に変化する点？
+			corner.push_back(make_pair(divideContours[i].at(0).first, divideContours[i].at(0).second));
+			//2個先の点と直線を引く
+			//直線の中点の8近傍がすべて真っ黒ならば、角の可能性大
+			for (int j = 0; j < divideContours[i].size() - 2; j = j + 2){
+				start.first = divideContours[i].at(j).first;
+				start.second = divideContours[i].at(j).second;
+				goal.first = divideContours[i].at(j+2).first;
+				goal.second = divideContours[i].at(j+2).second;
+				mid.first = (start.first + goal.first) / 2;
+				mid.second = (start.second + goal.second) / 2;
+				//8近傍が真っ黒＝角の可能性あり
+				if (!countW8(src_img, mid)){
+					corner.push_back(make_pair(divideContours[i].at(j + 1).first, divideContours[i].at(j + 1).second));
+				}
+			}
+			//最後の点は急激に変化する点？
+			corner.push_back(make_pair(divideContours[i].back().first, divideContours[i].back().second));
+
+			corners.push_back(corner);
 		}
 	}
 };
