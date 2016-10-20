@@ -17,7 +17,7 @@ public:
 	vector<pair<int, pair<int, int>>> priorityStart;
 	vector<vector<pair<int, int>>> contours;
 	vector<vector<pair<int, int>>> divideContours;
-	vector<vector<pair<int, int>>> corners;
+	vector<vector<cv::Point2f>> corners;
 
 	Dot(){
 		init();
@@ -238,12 +238,12 @@ public:
 		pair<int, int> start;
 		pair<int, int> goal;
 		pair<int, int> mid;
-		vector<pair<int, int>> corner;
+		vector<cv::Point2f> corner;
 
 
 		for (int i = 0; i < divideContours.size(); i++){
 			//最初の点は急激に変化する点？
-			corner.push_back(make_pair(divideContours[i].at(0).first, divideContours[i].at(0).second));
+			corner.push_back(cv::Point2f(divideContours[i].at(0).second, divideContours[i].at(0).first));
 			//2個先の点と直線を引く
 			//直線の中点の8近傍がすべて真っ黒ならば、角の可能性大
 			for (int j = 0; j < divideContours[i].size() - 2; j = j + 2){
@@ -255,11 +255,11 @@ public:
 				mid.second = (start.second + goal.second) / 2;
 				//8近傍が真っ黒＝角の可能性あり
 				if (!countW8(src_img, mid)){
-					corner.push_back(make_pair(divideContours[i].at(j + 1).first, divideContours[i].at(j + 1).second));
+					corner.push_back(cv::Point2f(divideContours[i].at(j + 1).second, divideContours[i].at(j + 1).first));
 				}
 			}
 			//最後の点は急激に変化する点？
-			corner.push_back(make_pair(divideContours[i].back().first, divideContours[i].back().second));
+			corner.push_back(cv::Point2f(divideContours[i].back().second, divideContours[i].back().first));
 
 			corners.push_back(corner);
 		}

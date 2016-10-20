@@ -23,6 +23,72 @@ void doThinning(cv::Mat &src_img, cv::Mat &result_img){
 	//cv::threshold(result_img, result_img, 0, 255, CV_THRESH_BINARY_INV);
 }
 
+void doVoronoi(cv::Mat &src_img, vector<vector<cv::Point2f>> &points){
+	cv::Subdiv2D subdiv;
+	subdiv.initDelaunay(cv::Rect(0, 0, 600, 600));
+	for (int i = 0; i < points.size(); i++){
+			subdiv.insert(points[i]);
+	}
+	vector<int> idx;
+	vector<std::vector<cv::Point2f>> facetLists;
+	vector<cv::Point2f> facetCenters;
+	subdiv.getVoronoiFacetList(idx, facetLists, facetCenters);
+
+	cv::Mat voronoi_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
+	for (int i = 0; i < points.size(); i++){
+		for (int j = 0; j < points[i].size(); j++){
+			int y = points[i].at(j).y;
+			int x = points[i].at(j).x;
+			circle(voronoi_img, cv::Point(x, y), 2, cv::Scalar(0, 0, 255), -1, 4);
+		}
+	}
+
+
+	// Voronoi図を描画
+	for (auto list = facetLists.begin(); list != facetLists.end(); list++)
+	{
+		cv::Point2f before = list->back();
+		for (auto pt = list->begin(); pt != list->end(); pt++)
+		{
+			cv::Point p1((int)before.x, (int)before.y);
+			cv::Point p2((int)pt->x, (int)pt->y);
+			cv::line(voronoi_img, p1, p2, cv::Scalar(64, 255, 128));
+			before = *pt;
+		}
+	}
+
+	// 辺のリストを取得
+	vector<cv::Vec4f> edgeList;
+	cv::Mat imgEdges;
+	subdiv.getEdgeList(edgeList);
+
+	// 描画
+	for (auto edge = edgeList.begin(); edge != edgeList.end(); edge++)
+	{
+		cv::Point p1(edge->val[0], edge->val[1]);
+		cv::Point p2(edge->val[2], edge->val[3]);
+		cv::line(imgEdges, p1, p2, cv::Scalar(48, 128, 48));
+	}
+
+	// ドロネー三角形のリストを取得
+	std::vector<cv::Vec6f> triangles;
+	subdiv.getTriangleList(triangles);
+
+	// 描画
+	for (auto it = triangles.begin(); it != triangles.end(); it++)
+	{
+		cv::Vec6f &vec = *it;
+		cv::Point p1(vec[0], vec[1]);
+		cv::Point p2(vec[2], vec[3]);
+		cv::Point p3(vec[4], vec[5]);
+		cv::line(voronoi_img, p1, p2, cv::Scalar(255, 0, 0));
+		cv::line(voronoi_img, p2, p3, cv::Scalar(255, 0, 0));
+		cv::line(voronoi_img, p3, p1, cv::Scalar(255, 0, 0));
+	}
+
+	cv::imshow("voronoi ", voronoi_img);
+}
+
 void doDot(cv::Mat &src_img){
 	Dot dot;
 	dot.setWhiteDots(src_img);
@@ -33,6 +99,8 @@ void doDot(cv::Mat &src_img){
 	dot.setCorner(src_img);
 
 	cv::Mat dot_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+	cv::Mat dot_corner_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+
 	for (int i = 0; i < dot.contours.size(); i++){
 		for (int j = 0; j < dot.contours[i].size(); j++){
 			int y = dot.contours[i].at(j).first;
@@ -56,13 +124,15 @@ void doDot(cv::Mat &src_img){
 	}
 	for (int i = 0; i < dot.corners.size(); i++){
 		for (int j = 0; j < dot.corners[i].size(); j++){
-			int y = dot.corners[i].at(j).first;
-			int x = dot.corners[i].at(j).second;
-			circle(dot_img, cv::Point(x, y), 2, cv::Scalar(0, 0, 255), -1, 4);
+			int y = dot.corners[i].at(j).y;
+			int x = dot.corners[i].at(j).x;
+			circle(dot_corner_img, cv::Point(x, y), 2, cv::Scalar(0, 0, 255), -1, 4);
 
 		}
 	}
+	doVoronoi(src_img, dot.corners);
 	cv::imshow("dot_img", dot_img);
+	cv::imshow("dot_corner_img", dot_corner_img);
 	cv::imwrite("dot1005.png", dot_img);
 }
 
