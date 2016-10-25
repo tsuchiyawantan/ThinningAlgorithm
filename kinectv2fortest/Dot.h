@@ -16,7 +16,7 @@ public:
 	set<pair<int, int>> whiteDots;
 	vector<pair<int, pair<int, int>>> priorityStart;
 	vector<vector<pair<int, int>>> contours;
-	vector<vector<pair<int, int>>> divideContours;
+	vector<vector<cv::Point2f>> divideContours;
 	vector<vector<cv::Point2f>> corners;
 
 	Dot(){
@@ -33,14 +33,14 @@ public:
 	void scalable(int scaleSize){
 		for (int i = 0; i < divideContours.size(); i++){
 			for (int j = 0; j < divideContours[i].size(); j++){
-				int y = (divideContours[i].at(j).first)*scaleSize;
-				int x = (divideContours[i].at(j).second)*scaleSize;
-				divideContours[i].at(j) = make_pair(y, x);
+				int y = (divideContours[i].at(j).y)*scaleSize;
+				int x = (divideContours[i].at(j).x)*scaleSize;
+				divideContours[i].at(j) = cv::Point2f(x, y);
 			}
 		}
 	}
 
-	void makeSpace(int spaceSize){
+	/*void makeSpace(int spaceSize){
 		for (int i = 0; i < contours.size(); i++){
 			vector<pair<int, int>> ctr;
 			int j = 0;
@@ -51,7 +51,7 @@ public:
 			if (j > contours[i].size()) ctr.push_back(make_pair(contours[i].back().first, contours[i].back().second));
 			divideContours.push_back(ctr);
 		}
-	}
+	}*/
 
 	void setWhiteDots(cv::Mat &srcImg){
 		unsigned char *p;
@@ -224,13 +224,13 @@ public:
 	}
 	void divideCon(int spaceSize){
 		for (int i = 0; i < contours.size(); i++){
-			vector<pair<int, int>> ctr;
+			vector<cv::Point2f> ctr;
 			int j = 0;
-			ctr.push_back(make_pair(contours[i].at(0).first, contours[i].at(0).second));
+			ctr.push_back(cv::Point2f(contours[i].at(0).second, contours[i].at(0).first));
 			for (j = spaceSize; j < contours[i].size(); j = j + spaceSize){
-				ctr.push_back(make_pair(contours[i].at(j).first, contours[i].at(j).second));
+				ctr.push_back(cv::Point2f(contours[i].at(j).second, contours[i].at(j).first));
 			}
-			if (j > contours[i].size()) ctr.push_back(make_pair(contours[i].back().first, contours[i].back().second));
+			if (j > contours[i].size()) ctr.push_back(cv::Point2f(contours[i].back().second, contours[i].back().first));
 			divideContours.push_back(ctr);
 		}
 	}
@@ -243,23 +243,23 @@ public:
 
 		for (int i = 0; i < divideContours.size(); i++){
 			//最初の点は急激に変化する点？
-			corner.push_back(cv::Point2f(divideContours[i].at(0).second, divideContours[i].at(0).first));
+			corner.push_back(cv::Point2f(divideContours[i].at(0).x, divideContours[i].at(0).y));
 			//2個先の点と直線を引く
 			//直線の中点の8近傍がすべて真っ黒ならば、角の可能性大
 			for (int j = 0; j < divideContours[i].size() - 2; j = j + 2){
-				start.first = divideContours[i].at(j).first;
-				start.second = divideContours[i].at(j).second;
-				goal.first = divideContours[i].at(j+2).first;
-				goal.second = divideContours[i].at(j+2).second;
+				start.first = divideContours[i].at(j).y;
+				start.second = divideContours[i].at(j).x;
+				goal.first = divideContours[i].at(j+2).y;
+				goal.second = divideContours[i].at(j+2).x;
 				mid.first = (start.first + goal.first) / 2;
 				mid.second = (start.second + goal.second) / 2;
 				//8近傍が真っ黒＝角の可能性あり
 				if (!countW8(src_img, mid)){
-					corner.push_back(cv::Point2f(divideContours[i].at(j + 1).second, divideContours[i].at(j + 1).first));
+					corner.push_back(cv::Point2f(divideContours[i].at(j + 1).x, divideContours[i].at(j + 1).y));
 				}
 			}
 			//最後の点は急激に変化する点？
-			corner.push_back(cv::Point2f(divideContours[i].back().second, divideContours[i].back().first));
+			corner.push_back(cv::Point2f(divideContours[i].back().x, divideContours[i].back().y));
 
 			corners.push_back(corner);
 		}

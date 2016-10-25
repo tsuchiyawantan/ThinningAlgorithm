@@ -23,7 +23,7 @@ void doThinning(cv::Mat &src_img, cv::Mat &result_img){
 	//cv::threshold(result_img, result_img, 0, 255, CV_THRESH_BINARY_INV);
 }
 
-void doVoronoi(cv::Mat &src_img, vector<vector<cv::Point2f>> &points){
+void doVoronoi(cv::Mat &src_img, cv::Mat &result_img, vector<vector<cv::Point2f>> &points){
 	cv::Subdiv2D subdiv;
 	subdiv.initDelaunay(cv::Rect(0, 0, 600, 600));
 	for (int i = 0; i < points.size(); i++){
@@ -34,12 +34,11 @@ void doVoronoi(cv::Mat &src_img, vector<vector<cv::Point2f>> &points){
 	vector<cv::Point2f> facetCenters;
 	subdiv.getVoronoiFacetList(idx, facetLists, facetCenters);
 
-	cv::Mat voronoi_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 	for (int i = 0; i < points.size(); i++){
 		for (int j = 0; j < points[i].size(); j++){
 			int y = points[i].at(j).y;
 			int x = points[i].at(j).x;
-			circle(voronoi_img, cv::Point(x, y), 2, cv::Scalar(0, 0, 255), -1, 4);
+			circle(result_img, cv::Point(x, y), 2, cv::Scalar(0, 0, 255), -1, 4);
 		}
 	}
 
@@ -52,7 +51,7 @@ void doVoronoi(cv::Mat &src_img, vector<vector<cv::Point2f>> &points){
 		{
 			cv::Point p1((int)before.x, (int)before.y);
 			cv::Point p2((int)pt->x, (int)pt->y);
-			cv::line(voronoi_img, p1, p2, cv::Scalar(64, 255, 128));
+			cv::line(result_img, p1, p2, cv::Scalar(64, 255, 128));
 			before = *pt;
 		}
 	}
@@ -81,12 +80,10 @@ void doVoronoi(cv::Mat &src_img, vector<vector<cv::Point2f>> &points){
 		cv::Point p1(vec[0], vec[1]);
 		cv::Point p2(vec[2], vec[3]);
 		cv::Point p3(vec[4], vec[5]);
-		cv::line(voronoi_img, p1, p2, cv::Scalar(255, 0, 0));
-		cv::line(voronoi_img, p2, p3, cv::Scalar(255, 0, 0));
-		cv::line(voronoi_img, p3, p1, cv::Scalar(255, 0, 0));
+		cv::line(result_img, p1, p2, cv::Scalar(255, 0, 0));
+		cv::line(result_img, p2, p3, cv::Scalar(255, 0, 0));
+		cv::line(result_img, p3, p1, cv::Scalar(255, 0, 0));
 	}
-
-	cv::imshow("voronoi ", voronoi_img);
 }
 
 void doDot(cv::Mat &src_img){
@@ -100,8 +97,10 @@ void doDot(cv::Mat &src_img){
 
 	cv::Mat dot_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
 	cv::Mat dot_corner_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+	cv::Mat voronoi_corner_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
+	cv::Mat voronoi_dot_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 
-	for (int i = 0; i < dot.contours.size(); i++){
+	/*for (int i = 0; i < dot.contours.size(); i++){
 		for (int j = 0; j < dot.contours[i].size(); j++){
 			int y = dot.contours[i].at(j).first;
 			int x = dot.contours[i].at(j).second;
@@ -113,11 +112,11 @@ void doDot(cv::Mat &src_img){
 				circle(dot_img, cv::Point(x, y), .5, cv::Scalar(255, 255, 255), -1, 4);
 
 		}
-	}	
+	}	*/
 	for (int i = 0; i < dot.divideContours.size(); i++){
 		for (int j = 0; j < dot.divideContours[i].size(); j++){
-			int y = dot.divideContours[i].at(j).first;
-			int x = dot.divideContours[i].at(j).second;
+			int y = dot.divideContours[i].at(j).y;
+			int x = dot.divideContours[i].at(j).x;
 			circle(dot_img, cv::Point(x, y), 2, cv::Scalar(0, 255, 0), -1, 4);
 
 		}
@@ -130,9 +129,12 @@ void doDot(cv::Mat &src_img){
 
 		}
 	}
-	doVoronoi(src_img, dot.corners);
+	doVoronoi(src_img, voronoi_corner_img, dot.corners);
+	doVoronoi(src_img, voronoi_dot_img, dot.divideContours);
 	cv::imshow("dot_img", dot_img);
 	cv::imshow("dot_corner_img", dot_corner_img);
+	cv::imshow("voronoi_corner_img", voronoi_corner_img);
+	cv::imshow("voronoi_dot_img", voronoi_dot_img);
 	cv::imwrite("dot1005.png", dot_img);
 }
 
