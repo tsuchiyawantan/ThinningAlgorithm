@@ -18,11 +18,28 @@ public:
 	vector<vector<pair<int, int>>> contours;
 	vector<vector<cv::Point2f>> divideContours;
 	vector<vector<cv::Point2f>> corners;
+	vector<cv::Point> nei_8;
+	vector<cv::Point> nei_24;
+	vector<cv::Point> nei_48;
 
 	Dot(){
 		init();
+		neighbourInit();
 	}
 	~Dot(){}
+	void neighbourInit(){
+		nei_8 = { cv::Point(1, 0), cv::Point(1, 1), cv::Point(0, 1), cv::Point(-1, 1), cv::Point(-1, 0), cv::Point(-1, -1), cv::Point(0, -1), cv::Point(1, -1) };
+		nei_24 = { cv::Point(1, 0), cv::Point(1, 1), cv::Point(0, 1), cv::Point(-1, 1), cv::Point(-1, 0), cv::Point(-1, -1), cv::Point(0, -1), cv::Point(1, -1),
+			cv::Point(2, -1), cv::Point(2, 0), cv::Point(2, 1), cv::Point(2, 2), cv::Point(1, 2), cv::Point(0, 2), cv::Point(-1, 2), cv::Point(-2, 2),
+			cv::Point(-2, 1), cv::Point(-2, 0), cv::Point(-2, -1), cv::Point(-2, -2), cv::Point(-1, -2), cv::Point(0, -2), cv::Point(1, -2), cv::Point(2, -2) };
+		nei_48 = { cv::Point(1, 0), cv::Point(1, 1), cv::Point(0, 1), cv::Point(-1, 1), cv::Point(-1, 0), cv::Point(-1, -1), cv::Point(0, -1), cv::Point(1, -1),
+			cv::Point(2, -1), cv::Point(2, 0), cv::Point(2, 1), cv::Point(2, 2), cv::Point(1, 2), cv::Point(0, 2), cv::Point(-1, 2), cv::Point(-2, 2),
+			cv::Point(-2, 1), cv::Point(-2, 0), cv::Point(-2, -1), cv::Point(-2, -2), cv::Point(-1, -2), cv::Point(0, -2), cv::Point(1, -2), cv::Point(2, -2),
+			cv::Point(3, -2), cv::Point(3, -1), cv::Point(3, 0), cv::Point(3, 1), cv::Point(3, 2), cv::Point(3, 3), cv::Point(2, 3), cv::Point(1, 3),
+			cv::Point(0, 3), cv::Point(-1, 3), cv::Point(-2, 3), cv::Point(-3, 3), cv::Point(-3, 2), cv::Point(-3, 1), cv::Point(-3, 0), cv::Point(-3, -1),
+			cv::Point(-3, -2), cv::Point(-3, -3), cv::Point(-2, -3), cv::Point(-1, -3), cv::Point(0, -3), cv::Point(1, -3), cv::Point(2, -3), cv::Point(3, -3) };
+
+	}
 	void init(){
 		usedDots.clear();
 		whiteDots.clear();
@@ -30,6 +47,7 @@ public:
 		contours.clear();
 		divideContours.clear();
 	}
+
 	void scalable(int scaleSize){
 		for (int i = 0; i < divideContours.size(); i++){
 			for (int j = 0; j < divideContours[i].size(); j++){
@@ -87,6 +105,23 @@ public:
 			int dx = x + n[i][1];
 			if (dy < 0 || dy >= srcImg.rows || dx < 0 || dx >= srcImg.cols) continue;
 			if (srcImg.at<uchar>(dy, dx) == 255) return true;
+		}
+		return false;
+	}
+	//8近傍にforwardがあればtrue
+	boolean dotExist(cv::Mat& src_img, cv::Point mid, cv::Point forward){
+		int n[8][2] = { { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 } };
+		int count = 0;
+		int y = mid.y;
+		int x = mid.x;
+		//中点がforwardの場合
+		if (y == forward.y && x == forward.x) return true;
+		for (int i = 0; i < 8; i++) {
+			int dy = y + n[i][0];
+			int dx = x + n[i][1];
+			src_img.at<uchar>(dy, dx) = 255;
+			if (dy < 0 || dy >= src_img.rows || dx < 0 || dx >= src_img.cols) continue;
+			if (dy == forward.y && dx == forward.x) return true;
 		}
 		return false;
 	}
@@ -222,22 +257,67 @@ public:
 			}
 		}
 	}
+
+	boolean notMyDot(vector<pair<int, int>> contour, int y, int x){
+		//自分自身の点ならばfalse
+		if (isExistV(y, x, contour)) return false;
+		return true;
+	}
+	//終点の48近傍調べる
+	void mergeLineAll(cv::Mat &srcImg){
+		for (int i = 0; i < contours.size(); i++){
+			int startY = contours[i].at(0).first;
+			int startX = contours[i].at(0).second;
+
+			int lastY = contours[i].at(contours[i].size() - 1).first;
+			int lastX = contours[i].at(contours[i].size() - 1).second;
+			
+			for (int l = 0; l < 48; l++) {
+				int dy = startY + nei_48.at(l).y;
+				int dx = startX + nei_48.at(l).x;
+
+				if (dy < 0 || dy >= srcImg.rows || dx < 0 || dx >= srcImg.cols) continue;
+				//近傍の中に白XYを見つけたらそれを自身にinsertする最初の位置
+				if (srcImg.at<uchar>(dy, dx) == 255 && notMyDot(contours[i], dy, dx)){
+					auto it = contours[i].begin();
+					it = contours[i].insert(it, make_pair(dy, dx));
+//					contours[i].insert(make_pair(dy, dx));
+					break;
+				}
+			} 
+			for (int l = 0; l < 48; l++) {
+				int dy = lastY + nei_48.at(l).y;
+				int dx = lastX + nei_48.at(l).x;
+
+				if (dy < 0 || dy >= srcImg.rows || dx < 0 || dx >= srcImg.cols) continue;
+				srcImg.at<uchar>(dy, dx) = 200;
+				//近傍の中に白XYを見つけたらそれを自身にpush_backする
+				if (srcImg.at<uchar>(dy, dx) == 255 && notMyDot(contours[i], dy, dx)){
+					contours[i].push_back(make_pair(dy, dx));
+					break;
+				}
+			}
+				}
+		cv::imshow("aaa", srcImg);
+			}
+
 	void divideCon(int spaceSize){
 		for (int i = 0; i < contours.size(); i++){
 			vector<cv::Point2f> ctr;
 			int j = 0;
-			ctr.push_back(cv::Point2f(contours[i].at(0).second, contours[i].at(0).first));
-			for (j = spaceSize; j < contours[i].size(); j = j + spaceSize){
+			//ctr.push_back(cv::Point2f(contours[i].at(0).second, contours[i].at(0).first));
+			for (j = 0; j < contours[i].size(); j = j + spaceSize){
 				ctr.push_back(cv::Point2f(contours[i].at(j).second, contours[i].at(j).first));
 			}
-			if (j > contours[i].size()) ctr.push_back(cv::Point2f(contours[i].back().second, contours[i].back().first));
+			//if (j > contours[i].size()) ctr.push_back(cv::Point2f(contours[i].back().second, contours[i].back().first));
 			divideContours.push_back(ctr);
 		}
 	}
 	void setCorner(cv::Mat &src_img){
-		pair<int, int> start;
-		pair<int, int> goal;
-		pair<int, int> mid;
+		cv::Point start;
+		cv::Point goal;
+		cv::Point mid;
+		cv::Point forward;
 		vector<cv::Point2f> corner;
 
 
@@ -245,17 +325,19 @@ public:
 			//最初の点は急激に変化する点？
 			corner.push_back(cv::Point2f(divideContours[i].at(0).x, divideContours[i].at(0).y));
 			//2個先の点と直線を引く
-			//直線の中点の8近傍がすべて真っ黒ならば、角の可能性大
+			//直線の中点の8近傍に1個先の点がいなければ、1個先の点は角の可能性あり
 			for (int j = 0; j < divideContours[i].size() - 2; j = j + 2){
-				start.first = divideContours[i].at(j).y;
-				start.second = divideContours[i].at(j).x;
-				goal.first = divideContours[i].at(j+2).y;
-				goal.second = divideContours[i].at(j+2).x;
-				mid.first = (start.first + goal.first) / 2;
-				mid.second = (start.second + goal.second) / 2;
-				//8近傍が真っ黒＝角の可能性あり
-				if (!countW8(src_img, mid)){
-					corner.push_back(cv::Point2f(divideContours[i].at(j + 1).x, divideContours[i].at(j + 1).y));
+				start.y = divideContours[i].at(j).y;
+				start.x = divideContours[i].at(j).x;
+				goal.y = divideContours[i].at(j+2).y;
+				goal.x = divideContours[i].at(j+2).x;
+				forward.y = divideContours[i].at(j + 1).y;
+				forward.x = divideContours[i].at(j + 1).x;
+				mid.y = (start.y + goal.y) / 2;
+				mid.x = (start.x + goal.x) / 2;
+				
+				if (!dotExist(src_img, mid, forward)){
+					corner.push_back(cv::Point2f(forward.x, forward.y));
 				}
 			}
 			//最後の点は急激に変化する点？
