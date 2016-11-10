@@ -22,7 +22,16 @@ void doThinning(cv::Mat &src_img, cv::Mat &result_img){
 	//çïÇ©ÇÁîíÇ÷
 	//cv::threshold(result_img, result_img, 0, 255, CV_THRESH_BINARY_INV);
 }
+void connectNearest(cv::Mat &src_img, cv::Subdiv2D &subdiv){
+	int vertexID = subdiv.findNearest(cv::Point2f(points[0].at(0).y, points[0].at(0).y), 0);
+	cout << vertexID << endl;
 
+	cv::Mat test_mat = src_img.clone();
+
+	circle(result_img, subdiv.getVertex(vertexID, 0), 5, cv::Scalar(0, 100, 255), -1, 4);
+	circle(result_img, cv::Point2f(points[0].at(0).y, points[0].at(0).y), 5, cv::Scalar(255, 100, 0), -1, 4);
+	cv::imshow("test_mat", result_img);
+}
 void doVoronoi(cv::Mat &src_img, cv::Mat &result_img, vector<vector<cv::Point2f>> &points){
 	cv::Subdiv2D subdiv;
 	subdiv.initDelaunay(cv::Rect(0, 0, 600, 600));
@@ -85,14 +94,16 @@ void doVoronoi(cv::Mat &src_img, cv::Mat &result_img, vector<vector<cv::Point2f>
 		cv::line(result_img, p2, p3, cv::Scalar(255, 0, 0));
 		cv::line(result_img, p3, p1, cv::Scalar(255, 0, 0));
 	}
-	int vertexID = subdiv.findNearest(cv::Point2f(points[0].at(0).y, points[0].at(0).y), 0);
-	cout << vertexID << endl;
+	//int vertexID = subdiv.findNearest(cv::Point2f(points[0].at(0).y, points[0].at(0).y), 0);
+	//cout << vertexID << endl;
 
-	cv::Mat test_mat = src_img.clone();
+	//cv::Mat test_mat = src_img.clone();
 
-	circle(result_img, subdiv.getVertex(vertexID, 0), 5, cv::Scalar(0, 100, 255), -1, 4);
-	circle(result_img, cv::Point2f(points[0].at(0).y, points[0].at(0).y), 5, cv::Scalar(255, 100, 0), -1, 4);
-cv::imshow("test_mat", result_img);
+	//circle(result_img, subdiv.getVertex(vertexID, 0), 5, cv::Scalar(0, 100, 255), -1, 4);
+	//circle(result_img, cv::Point2f(points[0].at(0).y, points[0].at(0).y), 5, cv::Scalar(255, 100, 0), -1, 4);
+	//cv::imshow("test_mat", result_img);
+	
+	//connectNearest();
 }
 
 void doDot(cv::Mat &src_img){
