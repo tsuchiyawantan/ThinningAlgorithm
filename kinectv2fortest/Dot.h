@@ -21,6 +21,7 @@ public:
 	vector<cv::Point> nei_8;
 	vector<cv::Point> nei_24;
 	vector<cv::Point> nei_48;
+	vector<cv::Point> start_goal;
 
 	Dot(){
 		init();
@@ -119,7 +120,6 @@ public:
 		for (int i = 0; i < 8; i++) {
 			int dy = y + n[i][0];
 			int dx = x + n[i][1];
-			src_img.at<uchar>(dy, dx) = 255;
 			if (dy < 0 || dy >= src_img.rows || dx < 0 || dx >= src_img.cols) continue;
 			if (dy == forward.y && dx == forward.x) return true;
 		}
