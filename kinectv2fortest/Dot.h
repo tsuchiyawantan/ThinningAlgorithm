@@ -203,8 +203,14 @@ public:
 				}
 				//ここでも見る。他の点がいればctrの最後に入れる
 				checkUsed8(srcImg, ctr, dir, y, x);
-				if (ctr.size() > 10)
+				if (ctr.size() > 10){
+					ctr.pop_back();
+					ctr.pop_back();
+					ctr.pop_back();
+					ctr.pop_back();
+					ctr.pop_back();
 					contours.push_back(ctr);
+				}
 				ctr.clear();
 				dir.clear();
 			}
@@ -310,6 +316,7 @@ public:
 				ctr.push_back(cv::Point2f(contours[i].at(j).second, contours[i].at(j).first));
 			}
 			//if (j > contours[i].size()) ctr.push_back(cv::Point2f(contours[i].back().second, contours[i].back().first));
+			ctr.push_back(cv::Point2f(contours[i].back().second, contours[i].back().first));
 			divideContours.push_back(ctr);
 		}
 	}
@@ -322,7 +329,8 @@ public:
 
 
 		for (int i = 0; i < divideContours.size(); i++){
-			//最初の点は急激に変化する点？
+			corner.clear();
+			//スタートの点
 			corner.push_back(cv::Point2f(divideContours[i].at(0).x, divideContours[i].at(0).y));
 			//2個先の点と直線を引く
 			//直線の中点の8近傍に1個先の点がいなければ、1個先の点は角の可能性あり
