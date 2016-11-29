@@ -235,7 +235,7 @@ void doDot(cv::Mat &src_img){
 	}
 	doVoronoi(dot_img, voronoi_corner_img, dot.corners, dot.contours);
 	//doVoronoi(src_img, voronoi_dot_img, dot.contours);
-	cv::imshow("dot_img", dot_img);
+	//cv::imshow("dot_img", dot_img);
 	cv::imshow("dot_corner_img", dot_corner_img);
 	cv::imshow("voronoi_corner_img", voronoi_corner_img);
 	/*cv::imshow("dot_img", dot_img);
@@ -258,15 +258,15 @@ void doJob(cv::Mat &src_img, cv::Mat &result_img){
 
 int main()
 {
-	cv::Mat src_img = cv::imread("image.png");
+	cv::Mat src_img = cv::imread("cup.png");
 	if (!src_img.data)
 		return -1;
 
 	cv::Mat result_img;
 	//forMyJob(src_img, result_img);
 	doJob(src_img, result_img);
-	cv::imshow("src", src_img);
-	cv::imshow("dst", result_img);
+	//cv::imshow("src", src_img);
+//	cv::imshow("dst", result_img);
 	cv::waitKey();
 	return 0;
 }
