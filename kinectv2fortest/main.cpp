@@ -5,29 +5,35 @@
 #include "Thinning.h"
 #include "Dot.h"
 #include "Voronoi.h"
+#include "CatmullSpline.h"
 
 #define SPACESIZE 10
+#define HUE 20
 
 using namespace std;
 
 Voronoi vor;
 cv::Subdiv2D subdiv;
+CatmullSpline catmull;
 
 
-/**
-* This is an example on how to call the thinning funciton above
-*/
 void doThinning(cv::Mat &src_img, cv::Mat &result_img){
 	Thinning thin;
 	cv::cvtColor(src_img, result_img, CV_BGR2GRAY);
 	cv::threshold(result_img, result_img, 50, 255, CV_THRESH_BINARY_INV);
-
-
 	thin.thinning(result_img, result_img);
 	//çïÇ©ÇÁîíÇ÷
 	//cv::threshold(result_img, result_img, 0, 255, CV_THRESH_BINARY_INV);
 }
 
+void doCatmull(cv::Mat &resultImg, vector<vector<pair<int, int>>> &approximationLine){
+	catmull.init();
+	for (int i = 0; i < approximationLine.size(); i++){
+		catmull.drawLine(resultImg, approximationLine[i], HUE);
+	}
+	catmull.drawInline(resultImg, HUE);
+}
+//pointsÇÕäp
 void doVoronoi(cv::Mat &src_img, cv::Mat &result_img, vector<vector<cv::Point2f>> &points, vector<vector<pair<int, int>>> &contours){
 	vor.mkVoronoiDelaunay(src_img, result_img, points, contours);
 	vor.connectNearest(src_img, result_img, subdiv, points, contours);
@@ -38,7 +44,6 @@ void doDot(cv::Mat &src_img){
 	dot.setWhiteDots(src_img);
 	dot.findStart(src_img);
 	dot.makeLine(src_img);
-	//dot.mergeLineAll(src_img);
 	dot.divideCon(SPACESIZE);
 	dot.setCorner(src_img);
 
@@ -46,6 +51,7 @@ void doDot(cv::Mat &src_img){
 	cv::Mat dot_corner_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
 	cv::Mat voronoi_corner_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 	cv::Mat result_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
+	cv::Mat catmull_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 	cv::Mat voronoi_dot_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 
 	for (int i = 0; i < dot.contours.size(); i++){
@@ -81,11 +87,17 @@ void doDot(cv::Mat &src_img){
 
 		}
 	}
+	cv::imshow("dot_img", dot_img);
+
 	doVoronoi(dot_img, result_img, dot.corners, dot.contours);
+	//removeInRowDots();
 	//doVoronoi(src_img, voronoi_dot_img, dot.contours);
-	//cv::imshow("dot_img", dot_img);
 	cv::imshow("dot_corner_img", dot_corner_img);
 	cv::imshow("result_img", result_img);
+
+	doCatmull(catmull_img, dot.contours);
+	cv::imshow("catmull_img", catmull_img);
+
 	/*cv::imshow("dot_img", dot_img);
 	cv::imshow("dot_corner_img", dot_corner_img);
 	*/
@@ -106,13 +118,13 @@ void doJob(cv::Mat &src_img, cv::Mat &result_img){
 
 int main()
 {
-	cv::Mat src_img = cv::imread("cup.png");
+	cv::Mat src_img = cv::imread("sample.jpg");
 	if (!src_img.data)
 		return -1;
 
 	cv::Mat result_img;
-	//forMyJob(src_img, result_img);
-	doJob(src_img, result_img);
+	forMyJob(src_img, result_img);
+	//doJob(src_img, result_img);
 	//cv::imshow("src", src_img);
 //	cv::imshow("dst", result_img);
 	cv::waitKey();

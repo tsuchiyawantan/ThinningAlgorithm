@@ -18,11 +18,7 @@ public:
 	set<pair<int, int>> whiteDots;
 	vector<pair<int, pair<int, int>>> priorityStart;
 	vector<vector<pair<int, int>>> contours;
-	vector<vector<cv::Point2f>> divideContours;
 	vector<vector<cv::Point2f>> corners;
-	vector<cv::Point> nei_8;
-	vector<cv::Point> nei_24;
-	vector<cv::Point> nei_48;
 	vector<cv::Point> start_goal;
 
 	Voronoi(){
