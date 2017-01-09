@@ -113,7 +113,7 @@ public:
 			int x = contours.at(i).second;
 			if (i >= contours.size() || i + 1 >= contours.size() || i + 2 >= contours.size() || i + 3 >= contours.size()) break;
 			if (i == 0){
-				for (double t = 0; t <= 1.0; t += 0.1){
+				for (double t = 0; t <= 1.0; t += 0.005){
 					y = catmullRomFirstLast(contours.at(0).first, contours.at(1).first, t);
 					x = catmullRomFirstLast(contours.at(0).second, contours.at(1).second, t);
 					ctr.push_back(make_pair(y, x));
@@ -127,7 +127,7 @@ public:
 				circle(resultImg, cv::Point(x, y), 5, cv::Scalar(b, g, r), -1, 8);
 			}
 			if (i == contours.size() - 4){
-				for (double t = 0; t <= 1.0; t += 0.1){
+				for (double t = 0; t <= 1.0; t += 0.005){
 					y = catmullRomFirstLast(contours.at(contours.size() - 2).first, contours.at(contours.size() - 1).first, t);
 					x = catmullRomFirstLast(contours.at(contours.size() - 2).second, contours.at(contours.size() - 1).second, t);
 					ctr.push_back(make_pair(y, x));

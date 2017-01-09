@@ -16,6 +16,7 @@ public:
 	set<pair<int, int>> whiteDots;
 	vector<pair<int, pair<int, int>>> priorityStart;
 	vector<vector<pair<int, int>>> contours;
+	vector<vector<pair<int, int>>> divcon;
 	vector<vector<cv::Point2f>> divideContours;
 	vector<vector<cv::Point2f>> corners;
 	vector<cv::Point> nei_8;
@@ -307,15 +308,14 @@ public:
 		cv::imshow("aaa", srcImg);
 			}
 
+	//点をspaceSizeだけ間引く
 	void divideCon(int spaceSize){
 		for (int i = 0; i < contours.size(); i++){
 			vector<cv::Point2f> ctr;
-			int j = 0;
-			//ctr.push_back(cv::Point2f(contours[i].at(0).second, contours[i].at(0).first));
-			for (j = 0; j < contours[i].size(); j = j + spaceSize){
+			
+			for (int j = 0; j < contours[i].size(); j = j + spaceSize){
 				ctr.push_back(cv::Point2f(contours[i].at(j).second, contours[i].at(j).first));
 			}
-			//if (j > contours[i].size()) ctr.push_back(cv::Point2f(contours[i].back().second, contours[i].back().first));
 			ctr.push_back(cv::Point2f(contours[i].back().second, contours[i].back().first));
 			divideContours.push_back(ctr);
 		}
@@ -352,6 +352,59 @@ public:
 			corner.push_back(cv::Point2f(divideContours[i].back().x, divideContours[i].back().y));
 
 			corners.push_back(corner);
+		}
+	}
+
+	//点列の角であろう点だけをset
+	void setCornerResult(cv::Mat &src_img){
+		cv::Point start;
+		cv::Point goal;
+		cv::Point mid;
+		cv::Point forward;
+		vector<cv::Point2f> corner;
+		vector<pair<int, int>> divcon_child;
+		int di = 0;
+		int j = 0;
+
+		for (int i = 0; i < divideContours.size(); i++){
+			corner.clear();
+			divcon_child.clear();
+			//スタートの点
+			corner.push_back(cv::Point2f(divideContours[i].at(0).x, divideContours[i].at(0).y));
+			di = 1;
+			//2個先の点と直線を引く
+			//直線の中点の8近傍に1個先の点がいなければ、1個先の点は角の可能性あり
+			for (j = 0; j < divideContours[i].size() - 2; j++){
+				start.y = divideContours[i].at(j).y;
+				start.x = divideContours[i].at(j).x;
+				goal.y = divideContours[i].at(j + 2).y;
+				goal.x = divideContours[i].at(j + 2).x;
+				forward.y = divideContours[i].at(j + 1).y;
+				forward.x = divideContours[i].at(j + 1).x;
+				mid.y = (start.y + goal.y) / 2;
+				mid.x = (start.x + goal.x) / 2;
+
+				if (!dotExist(src_img, mid, forward)){
+					corner.push_back(cv::Point2f(forward.x, forward.y));
+					di = 1;
+				}
+				//角じゃない点が3回続いたら、1点間引く
+				//詰まった線ではなく、シュッとした線になる
+				if (di % 3 == 0){
+					di = 0;
+					divcon_child.pop_back();
+				}
+				divcon_child.push_back(make_pair(start.y, start.x));
+				di++;
+			}
+			while (j < divideContours[i].size()){
+				divcon_child.push_back(make_pair(divideContours[i].at(j).y, divideContours[i].at(j).x));
+				j++;
+			}
+			//最後の点は急激に変化する点？
+			corner.push_back(cv::Point2f(divideContours[i].back().x, divideContours[i].back().y));
+			corners.push_back(corner);
+			divcon.push_back(divcon_child);
 		}
 	}
 };

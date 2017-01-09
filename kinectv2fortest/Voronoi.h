@@ -42,29 +42,32 @@ public:
 		float min_y = 0;
 		//min_x, min_yに該当する点がある場合=true, ない場合=false;
 		boolean nodot = false;
+		//edge_mapはx, yに近い点たちが入ってる
 		for (int i = 0; i < edge_map[key].size(); i++){
 			float end_x = edge_map[key].at(i).x;
 			float end_y = edge_map[key].at(i).y;
 			float length = sqrt((x - end_x)*(x - end_x) + (y - end_y)*(y - end_y));
+			//minより小さくて、かつ自身の点列の点じゃなければ
 			if (min > length && !isContourDot(contour, end_x, end_y)) {
 				min_x = end_x;
 				min_y = end_y;
 				min = length;
 				nodot = true;
 			}
-			//		else if (min==length)
 		}
 
 		//min_x, min_yに該当する点がない場合
 		if (!nodot) return;
 
 		//スタート点ならばstart_or_end=1
+		//点列のスタート点の前に挿入する
 		if (start_or_end){
 			vector<pair<int, int>>::iterator itr_con;
 			itr_con = contour.begin();
 			itr_con = contour.insert(itr_con, make_pair((int)min_y, (int)min_x));
 		}
 		//ゴール点はstart_or_end=0
+		//点列の最後に挿入する
 		else{
 			contour.push_back(make_pair((int)min_y, (int)min_x));
 		}
@@ -90,31 +93,24 @@ public:
 		makeEdgeListMap(src_img, edge_list, edge_map);
 
 		for (int i = 0; i < points.size(); i++){
-
+			//点列の始点終点
 			float start_y = points[i].at(0).y;
 			float start_x = points[i].at(0).x;
 			float end_y = points[i].back().y;
 			float end_x = points[i].back().x;
+			//始点と一番近い点をcontours(devcon)に格納
 			getNearestLength(edge_map, points[i], contours[i], start_x, start_y, 1);
+			//終点と一番近い点をcontours(devcon)に格納
 			getNearestLength(edge_map, points[i], contours[i], end_x, end_y, 0);
 		}
 
-		//circle(test_mat, subdiv.getVertex(vertexID, 0), 4, cv::Scalar(0, 100, 255), -1, 4);
-		//cout << subdiv.getVertex(vertexID, 0) << endl;
-		//circle(test_mat, cv::Point2f(points[0].at(0).x, points[0].at(0).y), 2, cv::Scalar(255, 100, 0), -1, 4);
+		//描画処理
 		for (int i = 0; i < contours.size(); i++){
 			for (int j = 0; j < contours[i].size() - 1; j++){
 				int y1 = contours[i].at(j).first;
 				int x1 = contours[i].at(j).second;
 				int y2 = contours[i].at(j + 1).first;
 				int x2 = contours[i].at(j + 1).second;
-				/*if (j == 0){
-				line(test_mat, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0, 0, 255), .5);
-
-				}
-				else if (j == contours[i].size() - 1)
-				line(test_mat, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 0, 0), .5);
-				else*/
 				line(result_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0, 255, 255), .5);
 			}
 		}

@@ -36,7 +36,6 @@ void doCatmull(cv::Mat &resultImg, vector<vector<pair<int, int>>> &approximation
 //pointsÇÕäp
 void doVoronoi(cv::Mat &src_img, cv::Mat &result_img, vector<vector<cv::Point2f>> &points, vector<vector<pair<int, int>>> &contours){
 	vor.mkVoronoiDelaunay(src_img, result_img, points, contours);
-	vor.connectNearest(src_img, result_img, subdiv, points, contours);
 }
 
 void doDot(cv::Mat &src_img){
@@ -45,7 +44,7 @@ void doDot(cv::Mat &src_img){
 	dot.findStart(src_img);
 	dot.makeLine(src_img);
 	dot.divideCon(SPACESIZE);
-	dot.setCorner(src_img);
+	dot.setCornerResult(src_img);
 
 	cv::Mat dot_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
 	cv::Mat dot_corner_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
@@ -54,6 +53,7 @@ void doDot(cv::Mat &src_img){
 	cv::Mat catmull_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 	cv::Mat voronoi_dot_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 
+	//ï`âÊÅ@contoursÇ»ÇÃÇ≈ëSì_óÒ
 	for (int i = 0; i < dot.contours.size(); i++){
 		for (int j = 0; j < dot.contours[i].size()-1; j++){
 			int y1 = dot.contours[i].at(j).first;
@@ -71,6 +71,7 @@ void doDot(cv::Mat &src_img){
 	}	
 	cv::imshow("line_img", dot_img);
 
+	//ï`âÊÅ@dividecontours
 	for (int i = 0; i < dot.divideContours.size(); i++){
 		for (int j = 0; j < dot.divideContours[i].size(); j++){
 			int y = dot.divideContours[i].at(j).y;
@@ -79,6 +80,16 @@ void doDot(cv::Mat &src_img){
 
 		}
 	}
+	//ï`âÊÅ@divcon=3ì_ë±Ç¢ÇΩÇÁä‘à¯Ç≠Ç‚Ç¬
+	for (int i = 0; i < dot.divcon.size(); i++){
+		for (int j = 0; j < dot.divcon[i].size(); j++){
+			int y = dot.divcon[i].at(j).first;
+			int x = dot.divcon[i].at(j).second;
+		//	circle(dot_img, cv::Point(x, y), 2, cv::Scalar(20, 100, 200), -1, 4);
+
+		}
+	}
+	//ï`âÊÅ@corner
 	for (int i = 0; i < dot.corners.size(); i++){
 		for (int j = 0; j < dot.corners[i].size(); j++){
 			int y = dot.corners[i].at(j).y;
@@ -88,14 +99,12 @@ void doDot(cv::Mat &src_img){
 		}
 	}
 	cv::imshow("dot_img", dot_img);
-
-	doVoronoi(dot_img, result_img, dot.corners, dot.contours);
-	//removeInRowDots();
+	doVoronoi(dot_img, result_img, dot.corners, dot.divcon);
 	//doVoronoi(src_img, voronoi_dot_img, dot.contours);
 	cv::imshow("dot_corner_img", dot_corner_img);
 	cv::imshow("result_img", result_img);
 
-	doCatmull(catmull_img, dot.contours);
+	doCatmull(catmull_img, dot.divcon);
 	cv::imshow("catmull_img", catmull_img);
 
 	/*cv::imshow("dot_img", dot_img);
@@ -118,15 +127,13 @@ void doJob(cv::Mat &src_img, cv::Mat &result_img){
 
 int main()
 {
-	cv::Mat src_img = cv::imread("sample.jpg");
+	cv::Mat src_img = cv::imread("cup.png");
 	if (!src_img.data)
 		return -1;
 
 	cv::Mat result_img;
-	forMyJob(src_img, result_img);
-	//doJob(src_img, result_img);
-	//cv::imshow("src", src_img);
-//	cv::imshow("dst", result_img);
+	//forMyJob(src_img, result_img);
+	doJob(src_img, result_img);
 	cv::waitKey();
 	return 0;
 }
