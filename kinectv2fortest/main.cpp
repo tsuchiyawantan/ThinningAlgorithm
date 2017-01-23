@@ -69,6 +69,7 @@ void doDot(cv::Mat &src_img){
 				line(dot_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 255, 255), .5);
 		}
 	}	
+
 	cv::imshow("line_img", dot_img);
 
 	//ï`âÊÅ@dividecontours
@@ -127,13 +128,13 @@ void doJob(cv::Mat &src_img, cv::Mat &result_img){
 
 int main()
 {
-	cv::Mat src_img = cv::imread("cup.png");
+	cv::Mat src_img = cv::imread("sourceimage/edge545.png");
 	if (!src_img.data)
 		return -1;
 
 	cv::Mat result_img;
-	//forMyJob(src_img, result_img);
-	doJob(src_img, result_img);
+	forMyJob(src_img, result_img);
+	//doJob(src_img, result_img);
 	cv::waitKey();
 	return 0;
 }
