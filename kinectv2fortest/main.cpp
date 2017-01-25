@@ -6,6 +6,7 @@
 #include "Dot.h"
 #include "Voronoi.h"
 #include "CatmullSpline.h"
+#include "Node.h"
 
 #define SPACESIZE 10
 #define HUE 20
@@ -26,7 +27,7 @@ void doThinning(cv::Mat &src_img, cv::Mat &result_img){
 	//cv::threshold(result_img, result_img, 0, 255, CV_THRESH_BINARY_INV);
 }
 
-void doCatmull(cv::Mat &resultImg, vector<vector<pair<int, int>>> &approximationLine){
+void doCatmull(cv::Mat &resultImg, vector<vector<cv::Point>> &approximationLine){
 	catmull.init();
 	for (int i = 0; i < approximationLine.size(); i++){
 		catmull.drawLine(resultImg, approximationLine[i], HUE);
@@ -38,6 +39,33 @@ void doVoronoi(cv::Mat &src_img, cv::Mat &result_img, vector<vector<cv::Point2f>
 	vor.mkVoronoiDelaunay(src_img, result_img, points, contours);
 }
 
+void doNodeEdge(vector<vector<cv::Point>> divcon){
+	//Node vectorを作成する。動的のが今後便利
+	vector<vector<Node *>> node_array;
+	for (int i = 0; i < divcon.size(); i++){
+		vector<Node *> node_array_child;
+
+		//エッジがない場合＝ノードが隣にいない
+		if (divcon[i].size() == 1) {
+			node_array_child.push_back(new Node(divcon[i].at(0)));
+			continue;
+		}
+		for (int j = 0; j < divcon[i].size(); j++){
+			//始点＝エッジは1つ
+			if (j == 0) node_array_child.push_back(new Node(divcon[i].at(0), divcon[i].at(1)));
+			//エッジが1つの場合＝自分が終点
+			else if (j == divcon[i].size() - 1) {
+				node_array_child.push_back(new Node(divcon[i].at(j), divcon[i].at(j - 1)));
+				break;
+			}
+			else
+			//エッジが2つの場合＝両隣のノード
+				node_array_child.push_back(new Node(divcon[i].at(j), divcon[i].at(j-1), divcon[i].at(j+1)));
+		}
+		node_array.push_back(node_array_child);
+	}
+}
+
 void doDot(cv::Mat &src_img){
 	Dot dot;
 	dot.setWhiteDots(src_img);
@@ -47,6 +75,7 @@ void doDot(cv::Mat &src_img){
 	dot.setCornerResult(src_img);
 
 	cv::Mat dot_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+	cv::Mat dot_divcon_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
 	cv::Mat dot_corner_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
 	cv::Mat voronoi_corner_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 	cv::Mat result_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
@@ -63,13 +92,12 @@ void doDot(cv::Mat &src_img){
 			if (j == 0){
 				line(dot_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0, 0, 255), .5);
 			}
-			else if (j == dot.contours[i].size() - 1)
-				line(dot_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 0, 0), .5);
+			else if (j == dot.contours[i].size() - 2)
+				circle(dot_img, cv::Point(x2, y2), .5, cv::Scalar(0, 255, 255), -1, 4);
 			else
 				line(dot_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 255, 255), .5);
 		}
 	}	
-
 	cv::imshow("line_img", dot_img);
 
 	//描画　dividecontours
@@ -84,12 +112,12 @@ void doDot(cv::Mat &src_img){
 	//描画　divcon=3点続いたら間引くやつ
 	for (int i = 0; i < dot.divcon.size(); i++){
 		for (int j = 0; j < dot.divcon[i].size(); j++){
-			int y = dot.divcon[i].at(j).first;
-			int x = dot.divcon[i].at(j).second;
-		//	circle(dot_img, cv::Point(x, y), 2, cv::Scalar(20, 100, 200), -1, 4);
-
+			int y = dot.divcon[i].at(j).y;
+			int x = dot.divcon[i].at(j).x;
+			circle(dot_divcon_img, cv::Point(x, y), 2, cv::Scalar(20, 100, 200), -1, 4);
 		}
 	}
+	
 	//描画　corner
 	for (int i = 0; i < dot.corners.size(); i++){
 		for (int j = 0; j < dot.corners[i].size(); j++){
@@ -99,12 +127,17 @@ void doDot(cv::Mat &src_img){
 
 		}
 	}
+
 	cv::imshow("dot_img", dot_img);
-	doVoronoi(dot_img, result_img, dot.corners, dot.divcon);
+	cv::imshow("dot_divcon_img", dot_divcon_img);
+	cv::imwrite("dot_img.png", dot_img);
+	//doVoronoi(dot_img, result_img, dot.corners, dot.divcon);
 	//doVoronoi(src_img, voronoi_dot_img, dot.contours);
 	cv::imshow("dot_corner_img", dot_corner_img);
 	cv::imshow("result_img", result_img);
 
+
+	doNodeEdge(dot.divcon);
 	doCatmull(catmull_img, dot.divcon);
 	cv::imshow("catmull_img", catmull_img);
 
@@ -128,13 +161,17 @@ void doJob(cv::Mat &src_img, cv::Mat &result_img){
 
 int main()
 {
-	cv::Mat src_img = cv::imread("sourceimage/edge545.png");
+	cv::Mat src_img = cv::imread("sourceimage/edge299.png");
 	if (!src_img.data)
 		return -1;
 
 	cv::Mat result_img;
 	forMyJob(src_img, result_img);
+	clock_t start = clock();
 	//doJob(src_img, result_img);
+	clock_t end = clock();
+
+	cout << end - start << endl;
 	cv::waitKey();
 	return 0;
 }

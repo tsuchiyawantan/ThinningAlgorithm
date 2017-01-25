@@ -8,16 +8,23 @@ class Node{
 private:
 public:
 	cv::Point node;
-	vector<Edge> edge_array;
-	Node(int edge_num){
-		for (int i = 0; i < edge_num; i++){
-			Edge edge;
-			edge_array.emplace_back(edge);
-		}
+	vector<Edge *> edge_array;
+	
+	//エッジがない場合
+	Node(cv::Point mynode){
+		node = mynode;
+	}
+	//エッジが1つある場合
+	Node(cv::Point mynode, cv::Point node_edge1){
+		node = mynode;
+		edge_array.push_back(new Edge(node_edge1));
+	}
+	//エッジが2つある場合
+	Node(cv::Point mynode, cv::Point node_edge1, cv::Point node_edge2){
+		node = mynode;
+		edge_array.push_back(new Edge(node_edge1));
+		edge_array.push_back(new Edge(node_edge2));
 	}
 	~Node(){}
 
-	void setEdgeNode(int edge_num, cv::Point node1, cv::Point node2){
-		edge_array.at(edge_num).setNode(node1, node2);
-	}
 };

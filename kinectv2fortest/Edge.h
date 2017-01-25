@@ -7,13 +7,10 @@ class Edge{
 private:
 
 public:
-	cv::Point edge_node1;
-	cv::Point edge_node2;
-	Edge(){}
-	~Edge(){}
+	cv::Point edge_node;
 
-	void setNode(cv::Point node1, cv::Point node2){
-		edge_node1 = node1;
-		edge_node2 = node2;
+	//エッジのノード
+	Edge(cv::Point edge_node_first){
+		edge_node = edge_node_first;
 	}
 };
