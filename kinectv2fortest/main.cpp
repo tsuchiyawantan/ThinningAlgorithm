@@ -39,35 +39,39 @@ void doVoronoi(cv::Mat &src_img, cv::Mat &result_img, vector<vector<cv::Point2f>
 	vor.mkVoronoiDelaunay(src_img, result_img, points, contours);
 }
 
-void doNodeEdge(vector<vector<cv::Point>> divcon){
-	//Node vectorを作成する。動的のが今後便利
-	vector<vector<Node *>> node_array;
+void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_array){
+	//ノードの用意
 	for (int i = 0; i < divcon.size(); i++){
 		vector<Node *> node_array_child;
 
 		//エッジがない場合＝ノードが隣にいない
 		if (divcon[i].size() == 1) {
-			node_array_child.push_back(new Node(divcon[i].at(0)));
+			node_array_child.push_back(new Node(divcon[i].at(0), 0));
 			continue;
 		}
-		for (int j = 0; j < divcon[i].size(); j++){
-			//始点＝エッジは1つ
-			if (j == 0) node_array_child.push_back(new Node(divcon[i].at(0), divcon[i].at(1)));
-			//エッジが1つの場合＝自分が終点
-			else if (j == divcon[i].size() - 1) {
-				node_array_child.push_back(new Node(divcon[i].at(j), divcon[i].at(j - 1)));
-				break;
-			}
-			else
-			//エッジが2つの場合＝両隣のノード
-				node_array_child.push_back(new Node(divcon[i].at(j), divcon[i].at(j-1), divcon[i].at(j+1)));
+		//始点
+		node_array_child.push_back(new Node(divcon[i].at(0), 1));
+		for (int j = 1; j < divcon[i].size(); j++){
+			node_array_child.push_back(new Node(divcon[i].at(j), 2));
 		}
+		//終点
+		node_array_child.push_back(new Node(divcon[i].at(divcon[i].size()-1), 1));
+
+		(*node_array_child.at(0)).addNode2Edge(node_array_child.at(1));
+		for (int l = 1; l < node_array_child.size()-1; l++){
+			(*node_array_child.at(l)).addNode2Edge(node_array_child.at(l-1), node_array_child.at(l+1));
+		}
+		(*node_array_child.at(node_array_child.size() - 1)).addNode2Edge(node_array_child.at(node_array_child.size() - 2));
+
 		node_array.push_back(node_array_child);
 	}
+
 }
 
 void doDot(cv::Mat &src_img){
 	Dot dot;
+	//Node vectorを作成する。動的のが今後便利
+	vector<vector<Node *>> node_array;
 	dot.setWhiteDots(src_img);
 	dot.findStart(src_img);
 	dot.makeLine(src_img);
@@ -137,10 +141,9 @@ void doDot(cv::Mat &src_img){
 	cv::imshow("result_img", result_img);
 
 
-	doNodeEdge(dot.divcon);
-	doCatmull(catmull_img, dot.divcon);
+	doNodeEdge(dot.divcon, node_array);
+//	doCatmull(catmull_img, node_array);
 	cv::imshow("catmull_img", catmull_img);
-
 	/*cv::imshow("dot_img", dot_img);
 	cv::imshow("dot_corner_img", dot_corner_img);
 	*/

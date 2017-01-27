@@ -3,14 +3,21 @@
 
 using namespace std;
 
+//相互参照対策
+class Node;
+
 class Edge{
 private:
-
 public:
-	cv::Point edge_node;
+	Node *node1;
+	Node *node2;
 
 	//エッジのノード
-	Edge(cv::Point edge_node_first){
-		edge_node = edge_node_first;
+	Edge(Node *mynode){
+		node1 = mynode;
+	}
+
+	void setNode(Node *node){
+		node2 = node;
 	}
 };
