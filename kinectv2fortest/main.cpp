@@ -49,6 +49,9 @@ void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_a
 			node_array_child.push_back(new Node(divcon[i].at(0), 0));
 			continue;
 		}
+		
+		//ノードの生成
+
 		//始点
 		node_array_child.push_back(new Node(divcon[i].at(0), 1));
 		for (int j = 1; j < divcon[i].size(); j++){
@@ -57,11 +60,14 @@ void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_a
 		//終点
 		node_array_child.push_back(new Node(divcon[i].at(divcon[i].size()-1), 1));
 
+		//ノードの連結操作
+
 		(*node_array_child.at(0)).addNode2Edge(node_array_child.at(1));
 		for (int l = 1; l < node_array_child.size()-1; l++){
 			(*node_array_child.at(l)).addNode2Edge(node_array_child.at(l-1), node_array_child.at(l+1));
 		}
 		(*node_array_child.at(node_array_child.size() - 1)).addNode2Edge(node_array_child.at(node_array_child.size() - 2));
+
 
 		node_array.push_back(node_array_child);
 	}

@@ -8,10 +8,9 @@ class Node;
 
 class Edge{
 private:
-public:
 	Node *node1;
 	Node *node2;
-
+public:
 	//エッジのノード
 	Edge(Node *mynode){
 		node1 = mynode;

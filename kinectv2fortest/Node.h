@@ -9,6 +9,7 @@ private:
 	cv::Point node;
 	vector<Edge *> edge_array;
 public:
+
 	Node(cv::Point mynode, int edge_num){
 		node = mynode;
 
