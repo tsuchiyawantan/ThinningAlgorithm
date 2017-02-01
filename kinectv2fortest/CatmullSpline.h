@@ -102,34 +102,34 @@ public:
 		}
 	}
 
-	void drawLine(cv::Mat &resultImg, vector<pair<int, int>> &contours, int hue){
+	void drawLine(cv::Mat &resultImg, vector<cv::Point> &contours, int hue){
 		NeonDesign design;
 		int b = 0, g = 0, r = 0;
 		vector<pair<int, int>> ctr;
 
 		design.rgb(hue, 255, 255 - 100, b, g, r);
 		for (int i = 0; i < contours.size(); i++){
-			int y = contours.at(i).first;
-			int x = contours.at(i).second;
+			int y = contours.at(i).y;
+			int x = contours.at(i).x;
 			if (i >= contours.size() || i + 1 >= contours.size() || i + 2 >= contours.size() || i + 3 >= contours.size()) break;
 			if (i == 0){
 				for (double t = 0; t <= 1.0; t += 0.005){
-					y = catmullRomFirstLast(contours.at(0).first, contours.at(1).first, t);
-					x = catmullRomFirstLast(contours.at(0).second, contours.at(1).second, t);
+					y = catmullRomFirstLast(contours.at(0).y, contours.at(1).y, t);
+					x = catmullRomFirstLast(contours.at(0).x, contours.at(1).x, t);
 					ctr.push_back(make_pair(y, x));
 					circle(resultImg, cv::Point(x, y), 5, cv::Scalar(b, g, r), -1, 8);
 				}
 			}
 			for (double t = 0; t <= 1.0; t += 0.05){
-				y = catmullRom(contours.at(i).first, contours.at(i + 1).first, contours.at(i + 2).first, contours.at(i + 3).first, t);
-				x = catmullRom(contours.at(i).second, contours.at(i + 1).second, contours.at(i + 2).second, contours.at(i + 3).second, t);
+				y = catmullRom(contours.at(i).y, contours.at(i + 1).y, contours.at(i + 2).y, contours.at(i + 3).y, t);
+				x = catmullRom(contours.at(i).x, contours.at(i + 1).x, contours.at(i + 2).x, contours.at(i + 3).x, t);
 				ctr.push_back(make_pair(y, x));
 				circle(resultImg, cv::Point(x, y), 5, cv::Scalar(b, g, r), -1, 8);
 			}
 			if (i == contours.size() - 4){
 				for (double t = 0; t <= 1.0; t += 0.005){
-					y = catmullRomFirstLast(contours.at(contours.size() - 2).first, contours.at(contours.size() - 1).first, t);
-					x = catmullRomFirstLast(contours.at(contours.size() - 2).second, contours.at(contours.size() - 1).second, t);
+					y = catmullRomFirstLast(contours.at(contours.size() - 2).y, contours.at(contours.size() - 1).y, t);
+					x = catmullRomFirstLast(contours.at(contours.size() - 2).x, contours.at(contours.size() - 1).x, t);
 					ctr.push_back(make_pair(y, x));
 					circle(resultImg, cv::Point(x, y), 5, cv::Scalar(b, g, r), -1, 8);
 				}

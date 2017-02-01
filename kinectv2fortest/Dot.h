@@ -16,32 +16,16 @@ public:
 	set<pair<int, int>> whiteDots;
 	vector<pair<int, pair<int, int>>> priorityStart;
 	vector<vector<pair<int, int>>> contours;
-	vector<vector<pair<int, int>>> divcon;
-	vector<vector<cv::Point2f>> divideContours;
+	vector<vector<cv::Point>> divcon;
+	vector<vector<cv::Point>> divideContours;
 	vector<vector<cv::Point2f>> corners;
-	vector<cv::Point> nei_8;
-	vector<cv::Point> nei_24;
-	vector<cv::Point> nei_48;
 	vector<cv::Point> start_goal;
 
 	Dot(){
 		init();
-		neighbourInit();
 	}
 	~Dot(){}
-	void neighbourInit(){
-		nei_8 = { cv::Point(1, 0), cv::Point(1, 1), cv::Point(0, 1), cv::Point(-1, 1), cv::Point(-1, 0), cv::Point(-1, -1), cv::Point(0, -1), cv::Point(1, -1) };
-		nei_24 = { cv::Point(1, 0), cv::Point(1, 1), cv::Point(0, 1), cv::Point(-1, 1), cv::Point(-1, 0), cv::Point(-1, -1), cv::Point(0, -1), cv::Point(1, -1),
-			cv::Point(2, -1), cv::Point(2, 0), cv::Point(2, 1), cv::Point(2, 2), cv::Point(1, 2), cv::Point(0, 2), cv::Point(-1, 2), cv::Point(-2, 2),
-			cv::Point(-2, 1), cv::Point(-2, 0), cv::Point(-2, -1), cv::Point(-2, -2), cv::Point(-1, -2), cv::Point(0, -2), cv::Point(1, -2), cv::Point(2, -2) };
-		nei_48 = { cv::Point(1, 0), cv::Point(1, 1), cv::Point(0, 1), cv::Point(-1, 1), cv::Point(-1, 0), cv::Point(-1, -1), cv::Point(0, -1), cv::Point(1, -1),
-			cv::Point(2, -1), cv::Point(2, 0), cv::Point(2, 1), cv::Point(2, 2), cv::Point(1, 2), cv::Point(0, 2), cv::Point(-1, 2), cv::Point(-2, 2),
-			cv::Point(-2, 1), cv::Point(-2, 0), cv::Point(-2, -1), cv::Point(-2, -2), cv::Point(-1, -2), cv::Point(0, -2), cv::Point(1, -2), cv::Point(2, -2),
-			cv::Point(3, -2), cv::Point(3, -1), cv::Point(3, 0), cv::Point(3, 1), cv::Point(3, 2), cv::Point(3, 3), cv::Point(2, 3), cv::Point(1, 3),
-			cv::Point(0, 3), cv::Point(-1, 3), cv::Point(-2, 3), cv::Point(-3, 3), cv::Point(-3, 2), cv::Point(-3, 1), cv::Point(-3, 0), cv::Point(-3, -1),
-			cv::Point(-3, -2), cv::Point(-3, -3), cv::Point(-2, -3), cv::Point(-1, -3), cv::Point(0, -3), cv::Point(1, -3), cv::Point(2, -3), cv::Point(3, -3) };
 
-	}
 	void init(){
 		usedDots.clear();
 		whiteDots.clear();
@@ -134,6 +118,7 @@ public:
 		}
 		sort(priorityStart.begin(), priorityStart.end());
 	}
+	//存在しなければfalse=0, 存在すればtrue=1
 	bool isExistS(int y, int x, set<pair<int, int>> &s){
 		if (s.find(make_pair(y, x)) == s.end()) return 0;
 		return 1;
@@ -143,19 +128,26 @@ public:
 		if (itr == v.end()) return 0;
 		return 1;
 	}
-	bool insertYX(cv::Mat &srcImg, vector<pair<int, int>> &ctr, int y, int x, vector<int> &dir){
+	bool insertYX(cv::Mat &src_img, vector<pair<int, int>> &ctr, int y, int x, vector<int> &dir){
 		vector<pair<int, int>> n = { { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 } };
-		vector<int> j = { 0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7 };
+		vector<int> j = { 0, 1, -1, 2, -2, 3, -3 };
+		boolean nearpoint = false;
+		int split_num = 0;
 		int i = 0;
-		while (i < j.size()){
-			int d = dir.back();
+		int init_d = dir.back();
+
+		//最大iは7ピクセル探索する
+		//近接点を発見したら、そこで探索終了
+		while (i < n.size()-1){
+			int d = init_d;
 			d = d + j.at(i);
 			if (d < 0) d = d + 8;
 			if (d > 7) d = d % 8;
 			int dy = y + n.at(d).first;
 			int dx = x + n.at(d).second;
-			if (dy < 0 || dy >= srcImg.rows || dx < 0 || dx >= srcImg.cols);
-			else if (srcImg.at<uchar>(dy, dx) == 255 && !isExistS(dy, dx, usedDots)) {
+			if (dy < 0 || dy >= src_img.rows || dx < 0 || dx >= src_img.cols);
+			//白い点でかつ使った点でなくかつまだ近接点定義されていないとき
+			else if (src_img.at<uchar>(dy, dx) == 255 && !isExistS(dy, dx, usedDots)) {
 				ctr.push_back(make_pair(dy, dx));
 				usedDots.insert(make_pair(dy, dx));
 				dir.push_back(d);
@@ -163,6 +155,7 @@ public:
 			}
 			i++;
 		}
+		//近接点がなかった場合=端点なので、0を返す
 		return 0;
 	}
 	void checkUsed8(cv::Mat &srcImg, vector<pair<int, int>> &ctr, vector<int> &dir, int y, int x){
@@ -177,6 +170,7 @@ public:
 			int dy = y + n.at(d).first;
 			int dx = x + n.at(d).second;
 			if (dy < 0 || dy >= srcImg.rows || dx < 0 || dx >= srcImg.cols);
+			//白い点で、usedDotsに存在して、自分自身の点列に存在しなければ（自分自身の点でなければ）
 			else if (srcImg.at<uchar>(dy, dx) == 255 && isExistS(dy, dx, usedDots) && !isExistV(dy, dx, ctr)){
 				ctr.push_back(make_pair(dy, dx));
 				break;
@@ -196,20 +190,17 @@ public:
 				ctr.push_back(make_pair(y, x));
 				usedDots.insert(make_pair(y, x));
 				dir.push_back(0);
-				//ここで8近傍見る、他の点列の点がいれば、それをctrのスタートの前に入れる
-				checkUsed8(srcImg, ctr, dir, y, x);
 				while (insertYX(srcImg, ctr, y, x, dir)){
+					//insertYXで処理した近接点を次に中点としてwhile文を回す
 					y = ctr.back().first;
 					x = ctr.back().second;
 				}
-				//ここでも見る。他の点がいればctrの最後に入れる
-				checkUsed8(srcImg, ctr, dir, y, x);
 				if (ctr.size() > 10){
-					ctr.pop_back();
-					ctr.pop_back();
-					ctr.pop_back();
-					ctr.pop_back();
-					ctr.pop_back();
+					//ctr.pop_back();
+					//ctr.pop_back();
+					//ctr.pop_back();
+					//ctr.pop_back();
+					//ctr.pop_back();
 					contours.push_back(ctr);
 				}
 				ctr.clear();
@@ -270,53 +261,16 @@ public:
 		if (isExistV(y, x, contour)) return false;
 		return true;
 	}
-	//終点の48近傍調べる
-	void mergeLineAll(cv::Mat &srcImg){
-		for (int i = 0; i < contours.size(); i++){
-			int startY = contours[i].at(0).first;
-			int startX = contours[i].at(0).second;
-
-			int lastY = contours[i].at(contours[i].size() - 1).first;
-			int lastX = contours[i].at(contours[i].size() - 1).second;
-			
-			for (int l = 0; l < 48; l++) {
-				int dy = startY + nei_48.at(l).y;
-				int dx = startX + nei_48.at(l).x;
-
-				if (dy < 0 || dy >= srcImg.rows || dx < 0 || dx >= srcImg.cols) continue;
-				//近傍の中に白XYを見つけたらそれを自身にinsertする最初の位置
-				if (srcImg.at<uchar>(dy, dx) == 255 && notMyDot(contours[i], dy, dx)){
-					auto it = contours[i].begin();
-					it = contours[i].insert(it, make_pair(dy, dx));
-//					contours[i].insert(make_pair(dy, dx));
-					break;
-				}
-			} 
-			for (int l = 0; l < 48; l++) {
-				int dy = lastY + nei_48.at(l).y;
-				int dx = lastX + nei_48.at(l).x;
-
-				if (dy < 0 || dy >= srcImg.rows || dx < 0 || dx >= srcImg.cols) continue;
-				srcImg.at<uchar>(dy, dx) = 200;
-				//近傍の中に白XYを見つけたらそれを自身にpush_backする
-				if (srcImg.at<uchar>(dy, dx) == 255 && notMyDot(contours[i], dy, dx)){
-					contours[i].push_back(make_pair(dy, dx));
-					break;
-				}
-			}
-				}
-		cv::imshow("aaa", srcImg);
-			}
-
+	
 	//点をspaceSizeだけ間引く
 	void divideCon(int spaceSize){
 		for (int i = 0; i < contours.size(); i++){
-			vector<cv::Point2f> ctr;
+			vector<cv::Point> ctr;
 			
 			for (int j = 0; j < contours[i].size(); j = j + spaceSize){
-				ctr.push_back(cv::Point2f(contours[i].at(j).second, contours[i].at(j).first));
+				ctr.push_back(cv::Point(contours[i].at(j).second, contours[i].at(j).first));
 			}
-			ctr.push_back(cv::Point2f(contours[i].back().second, contours[i].back().first));
+			ctr.push_back(cv::Point(contours[i].back().second, contours[i].back().first));
 			divideContours.push_back(ctr);
 		}
 	}
@@ -362,7 +316,7 @@ public:
 		cv::Point mid;
 		cv::Point forward;
 		vector<cv::Point2f> corner;
-		vector<pair<int, int>> divcon_child;
+		vector<cv::Point> divcon_child;
 		int di = 0;
 		int j = 0;
 
@@ -370,7 +324,7 @@ public:
 			corner.clear();
 			divcon_child.clear();
 			//スタートの点
-			corner.push_back(cv::Point2f(divideContours[i].at(0).x, divideContours[i].at(0).y));
+			//corner.push_back(cv::Point2f(divideContours[i].at(0).x, divideContours[i].at(0).y));
 			di = 1;
 			//2個先の点と直線を引く
 			//直線の中点の8近傍に1個先の点がいなければ、1個先の点は角の可能性あり
@@ -394,15 +348,15 @@ public:
 					di = 0;
 					divcon_child.pop_back();
 				}
-				divcon_child.push_back(make_pair(start.y, start.x));
+				divcon_child.push_back(start);
 				di++;
 			}
 			while (j < divideContours[i].size()){
-				divcon_child.push_back(make_pair(divideContours[i].at(j).y, divideContours[i].at(j).x));
+				divcon_child.push_back(divideContours[i].at(j));
 				j++;
 			}
 			//最後の点は急激に変化する点？
-			corner.push_back(cv::Point2f(divideContours[i].back().x, divideContours[i].back().y));
+			//corner.push_back(cv::Point2f(divideContours[i].back().x, divideContours[i].back().y));
 			corners.push_back(corner);
 			divcon.push_back(divcon_child);
 		}
