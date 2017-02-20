@@ -19,4 +19,9 @@ public:
 	void setNode(Node *node){
 		node2 = node;
 	}
+
+	//ƒ|ƒCƒ“ƒ^•Ô‚µ
+	Node *getNode(){
+		return node2;
+	}
 };

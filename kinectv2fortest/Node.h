@@ -10,32 +10,24 @@ private:
 	vector<Edge *> edge_array;
 public:
 
-	Node(cv::Point mynode, int edge_num){
+	Node(cv::Point mynode, int has_edge){
 		node = mynode;
-
-		if (edge_num == 0);
-		else if(edge_num == 1){
-			edge_array.push_back(new Edge(this));
-		}
-		else if (edge_num == 2){
-			edge_array.push_back(new Edge(this));
-			edge_array.push_back(new Edge(this));
-		}
+		if (has_edge) edge_array.push_back(new Edge(this));
 	}
 	~Node(){}
 
 	//エッジが1個の場合
-	void addNode2Edge(Node *node){
+	void addEdge(Node *node){
 		(*edge_array.at(0)).setNode(node);
 	}
 
-	//エッジが2個の場合
-	void addNode2Edge(Node *node1, Node *node2){
-		(*edge_array.at(0)).setNode(node1);
-		(*edge_array.at(1)).setNode(node2);
+	void setEdge(Edge *edge){
+		edge_array.push_back(edge);
 	}
 
-	void addEdge(){}
+	Edge *getEdge(int n){
+		return edge_array.at(n);
+	}
 
 	void getMyNode(cv::Point &mynode){
 		mynode.y = node.y;
@@ -44,5 +36,15 @@ public:
 	
 	int getMyEdgeNum(){
 		return edge_array.size();
+	}
+
+
+	int hasEdge(Node *node){
+		Edge *edge;
+		for (int i = 0; i < edge_array.size(); i++){
+			edge = edge_array.at(i);
+			if ((*edge).getNode() == node) return i;
+		}
+		return -1;
 	}
 };

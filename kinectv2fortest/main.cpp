@@ -43,35 +43,56 @@ void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_a
 	//ノードの用意
 	for (int i = 0; i < divcon.size(); i++){
 		vector<Node *> node_array_child;
+		cv::Point node;
 
 		//エッジがない場合＝ノードが隣にいない
 		if (divcon[i].size() == 1) {
-			node_array_child.push_back(new Node(divcon[i].at(0), 0));
+			node = divcon[i].at(0);
+			node_array_child.push_back(new Node(node, 0));
 			continue;
 		}
-		
-		//ノードの生成
 
-		//始点
-		node_array_child.push_back(new Node(divcon[i].at(0), 1));
-		for (int j = 1; j < divcon[i].size(); j++){
-			node_array_child.push_back(new Node(divcon[i].at(j), 2));
+		//ノードの生成
+		for (int j = 0; j < divcon[i].size(); j++){
+			node = divcon[i].at(j);
+			node_array_child.push_back(new Node(node, 1));
 		}
-		//終点
-		node_array_child.push_back(new Node(divcon[i].at(divcon[i].size()-1), 1));
+
 
 		//ノードの連結操作
+		Node *this_node;
+		Node *prev_node;
+		Node *next_node;
 
-		(*node_array_child.at(0)).addNode2Edge(node_array_child.at(1));
-		for (int l = 1; l < node_array_child.size()-1; l++){
-			(*node_array_child.at(l)).addNode2Edge(node_array_child.at(l-1), node_array_child.at(l+1));
+		for (int l = 0; l < node_array_child.size(); l++){
+			if (l == 0){
+				this_node = node_array_child.at(l);
+				next_node = node_array_child.at(l + 1);
+				(*this_node).addEdge(next_node);
+			}
+			else if (l == node_array_child.size() - 1){
+				this_node = node_array_child.at(l);
+				prev_node = node_array_child.at(l - 1);
+				int edgearray_num = (*prev_node).hasEdge(this_node);
+				if (edgearray_num >= 0){
+					Edge *edge = (*prev_node).getEdge(edgearray_num);
+					(*this_node).setEdge(edge);
+				}
+			}
+			else {
+				this_node = node_array_child.at(l);
+				prev_node = node_array_child.at(l - 1);
+				next_node = node_array_child.at(l + 1);
+				(*this_node).addEdge(next_node);
+				int edgearray_num = (*prev_node).hasEdge(this_node);
+				if (edgearray_num >= 0){
+					Edge *edge = (*prev_node).getEdge(edgearray_num);
+					(*this_node).setEdge(edge);
+				}
+			}
 		}
-		(*node_array_child.at(node_array_child.size() - 1)).addNode2Edge(node_array_child.at(node_array_child.size() - 2));
-
-
 		node_array.push_back(node_array_child);
 	}
-
 }
 
 void doDot(cv::Mat &src_img){
@@ -94,11 +115,11 @@ void doDot(cv::Mat &src_img){
 
 	//描画　contoursなので全点列
 	for (int i = 0; i < dot.contours.size(); i++){
-		for (int j = 0; j < dot.contours[i].size()-1; j++){
+		for (int j = 0; j < dot.contours[i].size() - 1; j++){
 			int y1 = dot.contours[i].at(j).first;
-			int x1 = dot.contours[i].at(j).second;	
-			int y2 = dot.contours[i].at(j+1).first;
-			int x2 = dot.contours[i].at(j+1).second;
+			int x1 = dot.contours[i].at(j).second;
+			int y2 = dot.contours[i].at(j + 1).first;
+			int x2 = dot.contours[i].at(j + 1).second;
 			if (j == 0){
 				line(dot_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0, 0, 255), .5);
 			}
@@ -107,7 +128,7 @@ void doDot(cv::Mat &src_img){
 			else
 				line(dot_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 255, 255), .5);
 		}
-	}	
+	}
 	cv::imshow("line_img", dot_img);
 
 	//描画　dividecontours
@@ -127,7 +148,7 @@ void doDot(cv::Mat &src_img){
 			circle(dot_divcon_img, cv::Point(x, y), 2, cv::Scalar(20, 100, 200), -1, 4);
 		}
 	}
-	
+
 	//描画　corner
 	for (int i = 0; i < dot.corners.size(); i++){
 		for (int j = 0; j < dot.corners[i].size(); j++){
@@ -148,7 +169,7 @@ void doDot(cv::Mat &src_img){
 
 
 	doNodeEdge(dot.divcon, node_array);
-//	doCatmull(catmull_img, node_array);
+	//	doCatmull(catmull_img, node_array);
 	cv::imshow("catmull_img", catmull_img);
 	/*cv::imshow("dot_img", dot_img);
 	cv::imshow("dot_corner_img", dot_corner_img);
