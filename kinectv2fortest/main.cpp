@@ -45,7 +45,7 @@ void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_a
 		vector<Node *> node_array_child;
 		cv::Point node;
 
-		//エッジがない場合＝ノードが隣にいない
+		//エッジがない場合＝ノードが右隣にいない
 		if (divcon[i].size() == 1) {
 			node = divcon[i].at(0);
 			node_array_child.push_back(new Node(node, 0));
@@ -53,11 +53,14 @@ void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_a
 		}
 
 		//ノードの生成
+		//エッジを一個持ってる状態
 		for (int j = 0; j < divcon[i].size(); j++){
 			node = divcon[i].at(j);
 			node_array_child.push_back(new Node(node, 1));
 		}
-
+		//終点はノードが右隣にいない
+		node = divcon[i].at(divcon[i].size()-1);
+		node_array_child.push_back(new Node(node, 0));
 
 		//ノードの連結操作
 		Node *this_node;
@@ -65,12 +68,12 @@ void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_a
 		Node *next_node;
 
 		for (int l = 0; l < node_array_child.size(); l++){
-			if (l == 0){
+			if (l == 0){ //始点
 				this_node = node_array_child.at(l);
 				next_node = node_array_child.at(l + 1);
 				(*this_node).addEdge(next_node);
 			}
-			else if (l == node_array_child.size() - 1){
+			else if (l == node_array_child.size() - 1){ //終点
 				this_node = node_array_child.at(l);
 				prev_node = node_array_child.at(l - 1);
 				int edgearray_num = (*prev_node).hasEdge(this_node);
@@ -141,26 +144,26 @@ void doDot(cv::Mat &src_img){
 		}
 	}
 	//描画　divcon=3点続いたら間引くやつ
-	for (int i = 0; i < dot.divcon.size(); i++){
+	/*for (int i = 0; i < dot.divcon.size(); i++){
 		for (int j = 0; j < dot.divcon[i].size(); j++){
 			int y = dot.divcon[i].at(j).y;
 			int x = dot.divcon[i].at(j).x;
-			circle(dot_divcon_img, cv::Point(x, y), 2, cv::Scalar(20, 100, 200), -1, 4);
+			circle(dot_img, cv::Point(x, y), 2, cv::Scalar(0, 255, 0), -1, 4);
 		}
-	}
+	}*/
 
 	//描画　corner
-	for (int i = 0; i < dot.corners.size(); i++){
+	/*for (int i = 0; i < dot.corners.size(); i++){
 		for (int j = 0; j < dot.corners[i].size(); j++){
 			int y = dot.corners[i].at(j).y;
 			int x = dot.corners[i].at(j).x;
 			circle(dot_img, cv::Point(x, y), 2, cv::Scalar(0, 0, 255), -1, 4);
 
 		}
-	}
+	}*/
 
 	cv::imshow("dot_img", dot_img);
-	cv::imshow("dot_divcon_img", dot_divcon_img);
+	//cv::imshow("dot_divcon_img", dot_divcon_img);
 	cv::imwrite("dot_img.png", dot_img);
 	//doVoronoi(dot_img, result_img, dot.corners, dot.divcon);
 	//doVoronoi(src_img, voronoi_dot_img, dot.contours);
@@ -191,7 +194,7 @@ void doJob(cv::Mat &src_img, cv::Mat &result_img){
 
 int main()
 {
-	cv::Mat src_img = cv::imread("sourceimage/edge299.png");
+	cv::Mat src_img = cv::imread("sample.jpg");
 	if (!src_img.data)
 		return -1;
 
