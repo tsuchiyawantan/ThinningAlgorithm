@@ -16,9 +16,9 @@ public:
 	}
 	~Node(){}
 
-	//エッジが1個の場合
-	void addEdge(Node *node){
-		(*edge_array.at(0)).setNode(node);
+	//エッジのnode2を埋める
+	void addEdge(Node *node, int i){
+		(*edge_array.at(i)).setNode(node);
 	}
 
 	void setEdge(Edge *edge){
@@ -29,6 +29,14 @@ public:
 		return edge_array.at(n);
 	}
 
+	int getNodeY(){
+		return node.y;
+	}
+
+	int getNodeX(){
+		return node.x;
+	}
+
 	void getMyNode(cv::Point &mynode){
 		mynode.y = node.y;
 		mynode.x = node.x;
@@ -37,7 +45,6 @@ public:
 	int getMyEdgeNum(){
 		return edge_array.size();
 	}
-
 
 	int hasEdge(Node *node){
 		Edge *edge;

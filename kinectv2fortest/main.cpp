@@ -27,19 +27,17 @@ void doThinning(cv::Mat &src_img, cv::Mat &result_img){
 	//cv::threshold(result_img, result_img, 0, 255, CV_THRESH_BINARY_INV);
 }
 
-void doCatmull(cv::Mat &resultImg, vector<vector<cv::Point>> &approximationLine){
+void doCatmull(cv::Mat &result_img, vector<vector<Node *>> node_array){
 	catmull.init();
-	for (int i = 0; i < approximationLine.size(); i++){
-		catmull.drawLine(resultImg, approximationLine[i], HUE);
-	}
-	catmull.drawInline(resultImg, HUE);
+	catmull.drawLine(result_img, node_array, HUE);
+	catmull.drawInline(result_img, HUE);
 }
 //pointsは角
 void doVoronoi(cv::Mat &src_img, cv::Mat &result_img, vector<vector<cv::Point2f>> &points, vector<vector<pair<int, int>>> &contours){
 	vor.mkVoronoiDelaunay(src_img, result_img, points, contours);
 }
 
-void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_array){
+void doNodeEdge(cv::Mat& src_img, vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_array){
 	//ノードの用意
 	for (int i = 0; i < divcon.size(); i++){
 		vector<Node *> node_array_child;
@@ -71,7 +69,7 @@ void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_a
 			if (l == 0){ //始点
 				this_node = node_array_child.at(l);
 				next_node = node_array_child.at(l + 1);
-				(*this_node).addEdge(next_node);
+				(*this_node).addEdge(next_node, 0);
 			}
 			else if (l == node_array_child.size() - 1){ //終点
 				this_node = node_array_child.at(l);
@@ -86,7 +84,7 @@ void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_a
 				this_node = node_array_child.at(l);
 				prev_node = node_array_child.at(l - 1);
 				next_node = node_array_child.at(l + 1);
-				(*this_node).addEdge(next_node);
+				(*this_node).addEdge(next_node, 0);
 				int edgearray_num = (*prev_node).hasEdge(this_node);
 				if (edgearray_num >= 0){
 					Edge *edge = (*prev_node).getEdge(edgearray_num);
@@ -98,23 +96,107 @@ void doNodeEdge(vector<vector<cv::Point>> divcon, vector<vector<Node *>> &node_a
 	}
 }
 
+//8近傍にforwardがあればtrue
+boolean dotExist(cv::Mat& src_img, cv::Point mid, cv::Point forward){
+	int n[8][2] = { { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 } };
+	int count = 0;
+	int y = mid.y;
+	int x = mid.x;
+	//中点がforwardの場合
+	if (y == forward.y && x == forward.x) return true;
+	for (int i = 0; i < 8; i++) {
+		int dy = y + n[i][0];
+		int dx = x + n[i][1];
+		if (dy < 0 || dy >= src_img.rows || dx < 0 || dx >= src_img.cols) continue;
+		if (dy == forward.y && dx == forward.x) return true;
+	}
+	return false;
+}
+
+//点列の角であろう点だけをset
+void setCorner(cv::Mat& src_img, vector<vector<Node *>> &node_array, vector<vector<Node *>> &newnode_array){
+	cv::Point start;
+	cv::Point goal;
+	cv::Point mid;
+	cv::Point forward;
+	vector<cv::Point2f> corner;
+	vector<Node *> node_array_child;
+	Node *start_node;
+	Node *goal_node;
+	Node *forward_node;
+	int di = 0;
+	int j = 0;
+
+	for (int i = 0; i < node_array.size(); i++){
+		corner.clear();
+		node_array_child.clear();
+		//スタートの点
+		//corner.push_back(cv::Point2f(divideContours[i].at(0).x, divideContours[i].at(0).y));
+		di = 1;
+		//2個先の点と直線を引く
+		//直線の中点の8近傍に1個先の点がいなければ、1個先の点は角の可能性あり
+		for (j = 0; j < node_array[i].size() - 2; j++){
+			start_node = node_array[i].at(j);
+			goal_node = node_array[i].at(j+2);
+			forward_node = node_array[i].at(j+1);
+			start.y = (*start_node).getNodeY();
+			start.x = (*start_node).getNodeX();
+			goal.y = (*goal_node).getNodeY();
+			goal.x = (*goal_node).getNodeX();
+			forward.y = (*forward_node).getNodeY();
+			forward.x = (*forward_node).getNodeX();
+			mid.y = (start.y + goal.y) / 2;
+			mid.x = (start.x + goal.x) / 2;
+
+			if (!dotExist(src_img, mid, forward)){
+				corner.push_back(cv::Point2f(forward.x, forward.y));
+				di = 1;
+			}
+			//角じゃない点が3回続いたら、1点間引く
+			//詰まった線ではなく、シュッとした線になる
+			if (di % 3 == 0){
+				di = 0;
+				node_array_child.pop_back();
+			}
+			node_array_child.push_back(start_node);
+			di++;
+		}
+		//残った2ノード
+		while (j < node_array[i].size()){
+			node_array_child.push_back(node_array[i].at(j));
+			j++;
+		}
+		newnode_array.push_back(node_array_child);
+	}
+}
+
+void drawNode(cv::Mat &result_img, vector<vector<Node *>> node_array){
+	for (int i = 0; i < node_array.size(); i++){
+		for (int j = 0; j < node_array[i].size(); j++){
+			Node *node = node_array[i].at(j);
+			int y = (*node).getNodeY();
+			int x = (*node).getNodeX();
+			circle(result_img, cv::Point(x, y), 2, cv::Scalar(0, 255, 0), -1, 4);
+		}
+	}
+}
+
 void doDot(cv::Mat &src_img){
 	Dot dot;
-	//Node vectorを作成する。動的のが今後便利
+	vector<vector<Node *>> prenode_array;
 	vector<vector<Node *>> node_array;
 	dot.setWhiteDots(src_img);
 	dot.findStart(src_img);
 	dot.makeLine(src_img);
 	dot.divideCon(SPACESIZE);
-	dot.setCornerResult(src_img);
+	doNodeEdge(src_img, dot.divideContours, prenode_array);
+	setCorner(src_img, prenode_array, node_array);
 
 	cv::Mat dot_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
 	cv::Mat dot_divcon_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
 	cv::Mat dot_corner_img = cv::Mat(src_img.rows, src_img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
-	cv::Mat voronoi_corner_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 	cv::Mat result_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 	cv::Mat catmull_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
-	cv::Mat voronoi_dot_img = cv::Mat::zeros(src_img.cols, src_img.rows, CV_8UC3);
 
 	//描画　contoursなので全点列
 	for (int i = 0; i < dot.contours.size(); i++){
@@ -133,50 +215,19 @@ void doDot(cv::Mat &src_img){
 		}
 	}
 	cv::imshow("line_img", dot_img);
-
-	//描画　dividecontours
-	for (int i = 0; i < dot.divideContours.size(); i++){
-		for (int j = 0; j < dot.divideContours[i].size(); j++){
-			int y = dot.divideContours[i].at(j).y;
-			int x = dot.divideContours[i].at(j).x;
-			circle(dot_img, cv::Point(x, y), 2, cv::Scalar(0, 255, 0), -1, 4);
-
-		}
-	}
-	//描画　divcon=3点続いたら間引くやつ
-	/*for (int i = 0; i < dot.divcon.size(); i++){
-		for (int j = 0; j < dot.divcon[i].size(); j++){
-			int y = dot.divcon[i].at(j).y;
-			int x = dot.divcon[i].at(j).x;
-			circle(dot_img, cv::Point(x, y), 2, cv::Scalar(0, 255, 0), -1, 4);
-		}
-	}*/
-
-	//描画　corner
-	/*for (int i = 0; i < dot.corners.size(); i++){
-		for (int j = 0; j < dot.corners[i].size(); j++){
-			int y = dot.corners[i].at(j).y;
-			int x = dot.corners[i].at(j).x;
-			circle(dot_img, cv::Point(x, y), 2, cv::Scalar(0, 0, 255), -1, 4);
-
-		}
-	}*/
+	
+	drawNode(result_img, node_array);
+	doCatmull(catmull_img, node_array);
 
 	cv::imshow("dot_img", dot_img);
-	//cv::imshow("dot_divcon_img", dot_divcon_img);
 	cv::imwrite("dot_img.png", dot_img);
-	//doVoronoi(dot_img, result_img, dot.corners, dot.divcon);
-	//doVoronoi(src_img, voronoi_dot_img, dot.contours);
 	cv::imshow("dot_corner_img", dot_corner_img);
 	cv::imshow("result_img", result_img);
 
 
-	doNodeEdge(dot.divcon, node_array);
+	doNodeEdge(src_img, dot.divcon, node_array);
 	//	doCatmull(catmull_img, node_array);
 	cv::imshow("catmull_img", catmull_img);
-	/*cv::imshow("dot_img", dot_img);
-	cv::imshow("dot_corner_img", dot_corner_img);
-	*/
 }
 
 //背景黒、線が白の場合、sample.jpgみたいな場合
